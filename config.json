@@ -1,0 +1,35 @@
+{
+  "base44_url": "https://solas-6a095a77.base44.app/functions/shimiStudioAPI",
+  "app_id": "6a901f55a4d9a9b76a095a77",
+  "worker_token": "__SET_IN_ENV__",
+  "long_poll_wait_seconds": 25,
+  "webhook_port": 5555,
+  "reconnect_delay_seconds": 5,
+  "comfyui_host": "127.0.0.1",
+  "comfyui_port": 8188,
+  "output_dir": "./output",
+  "comfyui_path": "./ComfyUI",
+  "gpu_enabled": true,
+  "pipelines": {
+    "image": "Pony Diffusion V6 XL → SDXL",
+    "video_low": "Wan 2.2 T2V 1.3B GGUF (4-6GB VRAM)",
+    "video_high": "Wan 2.2 T2V 14B FP8 (16GB VRAM)",
+    "i2v": "Wan 2.2 TI2V 5B FP8 (12GB VRAM)",
+    "long_video": "FramePack I2V 14B (6GB VRAM)",
+    "face_id": "PuLID + IPAdapter FaceID",
+    "face_swap": "ReActor + inswapper_128",
+    "tts": "XTTS v2 (6s sample, 17 languages)",
+    "lip_sync": "LatentSync / Wav2Lip UHQ",
+    "pose": "DWPose → ControlNet → Pony",
+    "upscale": "LTX-2.3 Upscaler x2"
+  },
+  "full_pipeline": [
+    "1. Pony V6 XL → image",
+    "2. Wan 2.2 I2V → video",
+    "3. PuLID/IPAdapter → face consistency",
+    "4. ReActor → face swap",
+    "5. XTTS v2 → voice clone",
+    "6. LatentSync → lip sync",
+    "7. LTX Upscaler x2 → upscale"
+  ]
+}

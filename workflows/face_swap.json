@@ -1,0 +1,46 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "__FACE_IMAGE__"
+    }
+  },
+  "2": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "__TARGET_IMAGE__"
+    }
+  },
+  "3": {
+    "class_type": "ReActorFaceSwap",
+    "inputs": {
+      "enabled": true,
+      "swap_model": "inswapper_128.onnx",
+      "facedetection": "retinaface_resnet50",
+      "face_restore_model": "GFPGANv1.4.pth",
+      "face_restore_visibility": 1.0,
+      "see_coder_visibility": 1.0,
+      "input_faces_order": "large-small",
+      "source_faces_order": "large-small",
+      "face_load_source": "input_image",
+      "input_image": [
+        "2",
+        0
+      ],
+      "source_image": [
+        "1",
+        0
+      ]
+    }
+  },
+  "4": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "FaceSwap_Shimi",
+      "images": [
+        "3",
+        0
+      ]
+    }
+  }
+}

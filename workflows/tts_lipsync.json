@@ -1,0 +1,52 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "__REFERENCE_IMAGE__"
+    }
+  },
+  "2": {
+    "class_type": "TTSAudioGenerator",
+    "inputs": {
+      "text": "__VOICE_TEXT__",
+      "voice": "en_us_001",
+      "speed": 1.0
+    }
+  },
+  "3": {
+    "class_type": "Wav2LipNode",
+    "inputs": {
+      "face_image": [
+        "1",
+        0
+      ],
+      "audio": [
+        "2",
+        0
+      ],
+      "face_restore": "GFPGAN"
+    }
+  },
+  "4": {
+    "class_type": "VHS_VideoCombine",
+    "inputs": {
+      "frame_rate": "__FPS__",
+      "loop_count": 0,
+      "filename_prefix": "LipSync_Shimi",
+      "format": "video/h264-mp4",
+      "pix_fmt": "yuv420p",
+      "crf": 19,
+      "save_metadata": true,
+      "pingpong": false,
+      "save_output": true,
+      "images": [
+        "3",
+        0
+      ],
+      "audio": [
+        "2",
+        0
+      ]
+    }
+  }
+}
