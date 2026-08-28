@@ -263,6 +263,7 @@ mkdir -p "${COMFY_DIR}/models/clip"
 mkdir -p "${COMFY_DIR}/models/diffusion_models"
 mkdir -p "${COMFY_DIR}/models/text_encoders"
 mkdir -p "${COMFY_DIR}/models/tts"
+mkdir -p "${COMFY_DIR}/models/upscale_models"
 
 download_model() {
     local url="$1"
@@ -470,6 +471,32 @@ download_model \
     "${COMFY_DIR}/models/controlnet/controlnet-openpose-sdxl-1.0.safetensors" \
 
     "ControlNet OpenPose SDXL"
+# 14. Upscale Model (4x-UltraSharp)
+download_model \
+
+    "https://huggingface.co/sczhou/CodeFormer/resolve/main/4x-UltraSharp.pth" \
+
+    "${COMFY_DIR}/models/upscale_models/4x-UltraSharp.pth" \
+
+    "4x-UltraSharp Upscaler"
+
+# 15. SDXL Base Checkpoint (for ControlNet compatibility)
+download_model \
+
+    "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors" \
+
+    "${COMFY_DIR}/models/checkpoints/sd_xl_base_1.0.safetensors" \
+
+    "SDXL Base 1.0 (for ControlNet)"
+
+# 16. IP-Adapter FaceID PlusV2 SDXL (higher quality)
+download_model \
+
+    "https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid-plusv2_sdxl.bin" \
+
+    "${COMFY_DIR}/models/ipadapter/ip-adapter-faceid-plusv2_sdxl.bin" \
+
+    "IP-Adapter FaceID PlusV2 SDXL"
 log_success "All requested AI models downloaded and verified."
 
 # ==============================================================================

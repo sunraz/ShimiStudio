@@ -34,10 +34,10 @@ def build_text_to_image(
     negative: str = DEFAULT_NEGATIVE,
     width: int = 1024,
     height: int = 1024,
-    steps: int = 25,
-    cfg: float = 7.5,
+    steps: int = 20,
+    cfg: float = 1.0,
     seed: int = -1,
-    checkpoint: str = "flux1-dev-fp8.safetensors"
+    checkpoint: str = "flux-uncensored-fp8.safetensors"
 ) -> Dict[str, Any]:
     """
     1. build_text_to_image
@@ -86,7 +86,7 @@ def build_text_to_image(
                 "steps": steps,
                 "cfg": cfg,
                 "sampler_name": "euler",
-                "scheduler": "normal",
+                "scheduler": "simple",
                 "denoise": 1.0,
                 "model": ["4", 0],
                 "positive": ["6", 0],
@@ -172,7 +172,7 @@ def build_image_to_video(
             }
         },
         "7": {
-            "class_type": "WanI2VLatentBuilder",
+            "class_type": "WanImageToVideo",
             "inputs": {
                 "image": ["4", 0],
                 "width": width,
@@ -403,7 +403,7 @@ def build_face_id(
         "1": {
             "class_type": "CheckpointLoaderSimple",
             "inputs": {
-                "ckpt_name": "sd_xl_base_1.0.safetensors"
+                "ckpt_name": "ponyDiffusionV6XL.safetensors"
             }
         },
         "2": {
@@ -415,7 +415,7 @@ def build_face_id(
         "3": {
             "class_type": "IPAdapterModelLoader",
             "inputs": {
-                "ipadapter_file": "ip-adapter-faceid-plusv2_sdxl.bin"
+                "ipadapter_file": "ip-adapter-faceid_sdxl.bin"
             }
         },
         "4": {
@@ -618,7 +618,7 @@ def build_controlnet_pose(
         "1": {
             "class_type": "CheckpointLoaderSimple",
             "inputs": {
-                "ckpt_name": "sd_xl_base_1.0.safetensors"
+                "ckpt_name": "ponyDiffusionV6XL.safetensors"
             }
         },
         "2": {
