@@ -3,3 +3,7 @@ __pycache__/
 output/
 venv/
 ComfyUI/
+logs/
+captures/
+temp/
+*.log

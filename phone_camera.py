@@ -1268,3 +1268,32 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+# ============================================================
+# PhoneCameraBridge Class (for studio.py compatibility)
+# ============================================================
+
+class PhoneCameraBridge:
+    """Wrapper class for the Flask phone camera bridge"""
+    
+    def __init__(self, host: str = "0.0.0.0", port: int = 5000):
+        self.host = host
+        self.port = port
+        self.app = app
+    
+    def start_server(self):
+        """Start the Flask server"""
+        print(f"Phone Camera Bridge starting on {self.host}:{self.port}")
+        print(f"Open on your phone: http://{get_local_ip()}:{self.port}")
+        app.run(host=self.host, port=self.port, debug=False)
+    
+    def stop_server(self):
+        """Stop the server"""
+        # Flask doesn't have a clean shutdown — Ctrl+C will stop it
+        pass
+    
+    def get_latest_capture(self):
+        """Get path to latest captured image"""
+        captures = sorted(CAPTURES_DIR.glob("*.jpg"), key=lambda f: f.stat().st_mtime, reverse=True)
+        return str(captures[0]) if captures else None

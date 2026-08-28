@@ -1,194 +1,36 @@
 """
 ShimiStudio Batch Generator v2.0
-מערכת Bulk Generation — נלקח מ-xmode.ai
-מאפשר יצירה של מספר סטיילים/מודים במכה אחת
+Batch generation system for images, videos, composite scenes, and prompt packs.
 """
 
-import json
 import os
 import sys
-import time
-import requests
-from typing import List, Optional
+from pathlib import Path
+from typing import List, Dict, Any, Optional
 
-# Import style library
-sys.path.insert(0, os.path.dirname(__file__))
+# Ensure local imports resolve
+sys.path.insert(0, str(Path(__file__).parent.resolve()))
+
 from style_library import (
-    STYLES, MOODS, VIDEO_STYLES, CHARACTERS,
-    ASPECT_RATIOS, DURATIONS,
-    build_image_prompt, build_video_prompt, build_scene_composition,
-    list_styles, list_moods, list_video_styles, list_characters,
+    STYLES,
+    MOODS,
+    VIDEO_STYLES,
+    CHARACTERS,
+    ASPECT_RATIOS,
+    build_image_prompt,
+    build_video_prompt,
+    build_scene_composition,
+    list_styles,
+    list_moods,
+    list_video_styles,
+    list_characters,
 )
 
 # ============================================================
-# Batch Image Generation
+# PROMPT PACKS (6 Curated Packs)
 # ============================================================
 
-def batch_generate_images(
-    base_prompt: str,
-    styles: List[str] = None,
-    moods: List[str] = None,
-    faceid_id: str = None,
-    faceid_weight: float = 1.0,
-    aspect_ratio: str = "1:1",
-    character: str = None,
-    count_per_combo: int = 1,
-) -> List[dict]:
-    """
-    יוצר מספר תמונות בכל שילובי סטייל × מוד
-    
-    דוגמה:
-        batch_generate_images(
-            base_prompt="woman in a park",
-            styles=["photorealistic", "cinematic", "anime"],
-            moods=["sensual", "playful"],
-            faceid_id="4995297",
-        )
-        → יוצר 6 תמונות (3 סטיילים × 2 מודים)
-    """
-    if not styles:
-        styles = ["photorealistic"]
-    if not moods:
-        moods = ["sensual"]
-    
-    jobs = []
-    
-    for style in styles:
-        for mood in moods:
-            for i in range(count_per_combo):
-                prompt_data = build_image_prompt(
-                    user_prompt=base_prompt,
-                    faceid_id=faceid_id,
-                    faceid_weight=faceid_weight,
-                    style=style,
-                    mood=mood,
-                    aspect_ratio=aspect_ratio,
-                    character=character,
-                )
-                
-                jobs.append({
-                    "job_type": "text_to_image",
-                    "prompt": prompt_data["prompt"],
-                    "negative_prompt": prompt_data["negative_prompt"],
-                    "parameters": {
-                        "width": prompt_data["width"],
-                        "height": prompt_data["height"],
-                        "model": prompt_data["model"],
-                        "style": style,
-                        "mood": mood,
-                    },
-                    "priority": 1,
-                })
-    
-    return jobs
-
-# ============================================================
-# Batch Video Generation
-# ============================================================
-
-def batch_generate_videos(
-    base_image_prompt: str,
-    video_styles: List[str] = None,
-    faceid_id: str = None,
-    custom_video_prompt: str = None,
-) -> List[dict]:
-    """
-    יוצר מספר וידאו בסטיילים שונים
-    
-    דוגמה:
-        batch_generate_videos(
-            base_image_prompt="woman at a pool",
-            video_styles=["pool_scene", "gym_scene", "tiktok_dance"],
-            faceid_id="4995297",
-        )
-    """
-    if not video_styles:
-        video_styles = ["pool_scene"]
-    
-    jobs = []
-    
-    for vstyle in video_styles:
-        prompt_data = build_video_prompt(
-            image_prompt=base_image_prompt,
-            video_style=vstyle,
-            faceid_id=faceid_id,
-            custom_video_prompt=custom_video_prompt,
-        )
-        
-        jobs.append({
-            "job_type": "image_to_video",
-            "prompt": prompt_data["video_prompt"],
-            "parameters": {
-                "image_prompt": prompt_data["image_prompt"],
-                "duration": prompt_data["duration"],
-                "aspect_ratio": prompt_data["aspect_ratio"],
-                "engine": prompt_data["engine"],
-                "video_style": vstyle,
-            },
-            "priority": 1,
-        })
-    
-    return jobs
-
-# ============================================================
-# Scene Composition — מספר FaceIDs בסצנה אחת
-# ============================================================
-
-def create_composite_scene(
-    face_ids: List[str],
-    outfit_ids: List[str] = None,
-    location_ids: List[str] = None,
-    action: str = "",
-    style: str = "cinematic",
-    mood: str = "sensual",
-    aspect_ratio: str = "16:9",
-) -> dict:
-    """
-    יוצר סצנה מורכבת עם מספר FaceIDs (מבנה xmode.ai)
-    
-    דוגמה:
-        create_composite_scene(
-            face_ids=["4995297", "4995298"],
-            outfit_ids=["bikini_01", "swimsuit_01"],
-            location_ids=["pool_01"],
-            action="They walk together to the pool",
-        )
-    """
-    scene_prompt = build_scene_composition(
-        face_ids=face_ids,
-        outfit_ids=outfit_ids,
-        location_ids=location_ids,
-        action=action,
-    )
-    
-    prompt_data = build_image_prompt(
-        user_prompt=scene_prompt,
-        style=style,
-        mood=mood,
-        aspect_ratio=aspect_ratio,
-    )
-    
-    return {
-        "job_type": "text_to_image",
-        "prompt": prompt_data["prompt"],
-        "negative_prompt": prompt_data["negative_prompt"],
-        "parameters": {
-            "width": prompt_data["width"],
-            "height": prompt_data["height"],
-            "model": prompt_data["model"],
-            "face_ids": face_ids,
-            "outfit_ids": outfit_ids,
-            "location_ids": location_ids,
-            "composite_scene": True,
-        },
-        "priority": 1,
-    }
-
-# ============================================================
-# Prompt Pack — חבילות prompts מוכנות (מ-xmode "200+ curated prompts")
-# ============================================================
-
-PROMPT_PACKS = {
+PROMPT_PACKS: Dict[str, Dict[str, Any]] = {
     "portrait_basics": {
         "name": "Portrait Basics",
         "category": "styles",
@@ -257,111 +99,260 @@ PROMPT_PACKS = {
     },
 }
 
+
 def get_prompt_pack(pack_name: str) -> List[str]:
-    """מחזיר חבילת prompts"""
+    """Retrieves list of 5 prompt strings for given pack_name."""
     pack = PROMPT_PACKS.get(pack_name)
     if not pack:
-        return []
+        raise KeyError(f"Prompt pack '{pack_name}' not found. Available: {list(PROMPT_PACKS.keys())}")
     return pack["prompts"]
 
-def list_prompt_packs(category: str = None) -> List[dict]:
-    """מחזיר רשימת חבילות prompts"""
-    if category:
-        return [{"name": k, **v} for k, v in PROMPT_PACKS.items() if v.get("category") == category]
-    return [{"name": k, **v} for k, v in PROMPT_PACKS.items()]
+
+def list_prompt_packs(category: Optional[str] = None) -> List[dict]:
+    """Lists available prompt packs, optionally filtered by category."""
+    results = []
+    for key, pack in PROMPT_PACKS.items():
+        if category and pack.get("category") != category:
+            continue
+        results.append({
+            "id": key,
+            "name": pack["name"],
+            "category": pack["category"],
+            "count": len(pack["prompts"]),
+        })
+    return results
+
 
 # ============================================================
-# CLI Interface
+# BATCH GENERATION FUNCTIONS
 # ============================================================
 
-def interactive_menu():
-    """תפריט אינטראקטיבי לבחירת סטיילים ויצירה"""
-    print("=" * 60)
-    print("  ShimiStudio v2.0 — Batch Generator")
-    print("=" * 60)
-    
-    print("\n📸 Image Styles:")
-    for k, name in list_styles("styles"):
-        print(f"  {k:20s} → {name}")
-    
-    print("\n🎨 Moods:")
-    for k, name in list_moods():
-        print(f"  {k:20s} → {name}")
-    
-    print("\n🎥 Video Styles:")
-    for k, name in list_video_styles():
-        print(f"  {k:20s} → {name}")
-    
-    print("\n👤 Characters:")
-    for k, name in list_characters():
-        print(f"  {k:20s} → {name}")
-    
-    print("\n📦 Prompt Packs:")
-    for pack in list_prompt_packs():
-        print(f"  {pack['name']:20s} → {len(pack['prompts'])} prompts ({pack['category']})")
-    
-    print("\n" + "=" * 60)
-    print("\nדוגמת שימוש:")
-    print("  from batch_generator import batch_generate_images")
-    print("  jobs = batch_generate_images(")
-    print('      base_prompt="woman in a park",')
-    print('      styles=["photorealistic", "cinematic"],')
-    print('      moods=["sensual", "playful"],')
-    print('      faceid_id="4995297",')
-    print("  )")
-    print(f"  → יוצר {2*2} jobs")
+def batch_generate_images(
+    base_prompt: str,
+    styles: Optional[List[str]] = None,
+    moods: Optional[List[str]] = None,
+    faceid_id: Optional[str] = None,
+    faceid_weight: float = 1.0,
+    aspect_ratio: str = "1:1",
+    character: Optional[str] = None,
+    count_per_combo: int = 1,
+) -> List[dict]:
+    """
+    Generates job dictionaries for all combinations of styles x moods x count_per_combo.
+    Each job: {job_type: 'text_to_image', prompt, negative_prompt, parameters: {width, height, model, style, mood}, priority: 1}
+    """
+    if not styles:
+        styles = ["photorealistic"]
+    elif isinstance(styles, str):
+        styles = [styles]
+
+    if not moods:
+        moods = [None]
+    elif isinstance(moods, str):
+        moods = [moods]
+
+    jobs = []
+    for style in styles:
+        for mood in moods:
+            for _ in range(count_per_combo):
+                prompt_data = build_image_prompt(
+                    user_prompt=base_prompt,
+                    faceid_id=faceid_id,
+                    faceid_weight=faceid_weight,
+                    style=style,
+                    mood=mood,
+                    aspect_ratio=aspect_ratio,
+                    character=character,
+                )
+
+                jobs.append({
+                    "job_type": "text_to_image",
+                    "prompt": prompt_data["prompt"],
+                    "negative_prompt": prompt_data["negative_prompt"],
+                    "parameters": {
+                        "width": prompt_data["width"],
+                        "height": prompt_data["height"],
+                        "model": prompt_data["model"],
+                        "style": style,
+                        "mood": mood,
+                        "faceid_id": faceid_id,
+                        "faceid_weight": faceid_weight,
+                        "character": character,
+                        "aspect_ratio": aspect_ratio,
+                    },
+                    "priority": 1,
+                })
+
+    return jobs
+
+
+def batch_generate_videos(
+    base_image_prompt: str,
+    video_styles: Optional[List[str]] = None,
+    faceid_id: Optional[str] = None,
+    custom_video_prompt: Optional[str] = None,
+) -> List[dict]:
+    """
+    Generates video job dicts for given video styles.
+    Each: {job_type: 'image_to_video', prompt: video_prompt, parameters: {image_prompt, duration, aspect_ratio, engine, video_style}, priority: 1}
+    """
+    if not video_styles:
+        video_styles = ["pool_scene"]
+    elif isinstance(video_styles, str):
+        video_styles = [video_styles]
+
+    jobs = []
+    for vstyle in video_styles:
+        prompt_data = build_video_prompt(
+            image_prompt=base_image_prompt,
+            video_style=vstyle,
+            faceid_id=faceid_id,
+            custom_video_prompt=custom_video_prompt,
+        )
+
+        jobs.append({
+            "job_type": "image_to_video",
+            "prompt": prompt_data["video_prompt"],
+            "parameters": {
+                "image_prompt": prompt_data["image_prompt"],
+                "duration": prompt_data["duration"],
+                "aspect_ratio": prompt_data["aspect_ratio"],
+                "engine": prompt_data["engine"],
+                "video_style": vstyle,
+                "faceid_id": faceid_id,
+            },
+            "priority": 1,
+        })
+
+    return jobs
+
+
+def create_composite_scene(
+    face_ids: List[str],
+    outfit_ids: Optional[List[str]] = None,
+    location_ids: Optional[List[str]] = None,
+    action: str = "",
+    style: str = "cinematic",
+    mood: str = "sensual",
+    aspect_ratio: str = "16:9",
+) -> dict:
+    """
+    Returns single composite scene job dict.
+    """
+    scene_prompt = build_scene_composition(
+        face_ids=face_ids,
+        outfit_ids=outfit_ids,
+        location_ids=location_ids,
+        action=action,
+    )
+
+    prompt_data = build_image_prompt(
+        user_prompt=scene_prompt,
+        style=style,
+        mood=mood,
+        aspect_ratio=aspect_ratio,
+    )
+
+    return {
+        "job_type": "composite_scene",
+        "prompt": prompt_data["prompt"],
+        "negative_prompt": prompt_data["negative_prompt"],
+        "parameters": {
+            "width": prompt_data["width"],
+            "height": prompt_data["height"],
+            "model": prompt_data["model"],
+            "face_ids": face_ids,
+            "outfit_ids": outfit_ids,
+            "location_ids": location_ids,
+            "action": action,
+            "style": style,
+            "mood": mood,
+            "aspect_ratio": aspect_ratio,
+        },
+        "priority": 1,
+    }
+
+
+def run_batch_from_pack(
+    pack_name: str,
+    styles: Optional[List[str]] = None,
+    moods: Optional[List[str]] = None,
+    faceid_id: Optional[str] = None,
+    aspect_ratio: str = "1:1",
+) -> List[dict]:
+    """
+    Takes a prompt pack and generates jobs for each prompt in the pack.
+    """
+    pack_info = PROMPT_PACKS.get(pack_name, {})
+    prompts = get_prompt_pack(pack_name)
+    category = pack_info.get("category", "styles")
+
+    all_jobs = []
+    is_video_pack = category in ("video", "xxx_video")
+
+    for prompt_text in prompts:
+        if is_video_pack:
+            v_styles = styles if styles else None
+            jobs = batch_generate_videos(
+                base_image_prompt=prompt_text,
+                video_styles=v_styles,
+                faceid_id=faceid_id,
+            )
+        else:
+            jobs = batch_generate_images(
+                base_prompt=prompt_text,
+                styles=styles,
+                moods=moods,
+                faceid_id=faceid_id,
+                aspect_ratio=aspect_ratio,
+            )
+        all_jobs.extend(jobs)
+
+    return all_jobs
 
 
 if __name__ == "__main__":
-    interactive_menu()
-    
-    # Demo
-    print("\n" + "=" * 60)
-    print("  Demo: Batch Image Generation")
-    print("=" * 60)
-    
-    jobs = batch_generate_images(
-        base_prompt="woman standing in a park",
-        styles=["photorealistic", "cinematic", "anime"],
-        moods=["sensual", "playful"],
-        faceid_id="4995297",
+    print("=== ShimiStudio Batch Generator v2.0 ===\n")
+
+    print("📦 Available Prompt Packs:")
+    packs = list_prompt_packs()
+    for p in packs:
+        print(f"  - [{p['id']}] {p['name']} ({p['category']}): {p['count']} prompts")
+
+    print("\n📸 Demo Batch Image Generation:")
+    demo_images = batch_generate_images(
+        base_prompt="woman sitting on a terrace",
+        styles=["photorealistic", "cinematic"],
+        moods=["sensual", "romantic"],
+        aspect_ratio="16:9",
     )
-    
-    print(f"\nנוצרו {len(jobs)} jobs:")
-    for i, job in enumerate(jobs):
-        print(f"\n  Job {i+1}:")
-        print(f"    Style: {job['parameters']['style']}")
-        print(f"    Mood: {job['parameters']['mood']}")
-        print(f"    Size: {job['parameters']['width']}x{job['parameters']['height']}")
-        print(f"    Prompt: {job['prompt'][:80]}...")
-    
-    print("\n" + "=" * 60)
-    print("  Demo: Batch Video Generation")
-    print("=" * 60)
-    
-    vjobs = batch_generate_videos(
+    print(f"Generated {len(demo_images)} image job(s). First job preview:")
+    print(f"  Job Type: {demo_images[0]['job_type']}")
+    print(f"  Prompt: {demo_images[0]['prompt'][:80]}...")
+    print(f"  Params: {demo_images[0]['parameters']}")
+
+    print("\n🎥 Demo Batch Video Generation:")
+    demo_videos = batch_generate_videos(
         base_image_prompt="woman at a pool",
-        video_styles=["pool_scene", "gym_scene", "tiktok_dance"],
-        faceid_id="4995297",
+        video_styles=["pool_scene", "conservatory_video"],
     )
-    
-    print(f"\nנוצרו {len(vjobs)} video jobs:")
-    for i, job in enumerate(vjobs):
-        print(f"\n  Video Job {i+1}:")
-        print(f"    Style: {job['parameters']['video_style']}")
-        print(f"    Duration: {job['parameters']['duration']}s")
-        print(f"    Engine: {job['parameters']['engine']}")
-    
-    print("\n" + "=" * 60)
-    print("  Demo: Composite Scene")
-    print("=" * 60)
-    
-    scene = create_composite_scene(
+    print(f"Generated {len(demo_videos)} video job(s). First job preview:")
+    print(f"  Job Type: {demo_videos[0]['job_type']}")
+    print(f"  Engine: {demo_videos[0]['parameters']['engine']}")
+
+    print("\n🎬 Demo Composite Scene Creation:")
+    composite = create_composite_scene(
         face_ids=["4995297", "4995298"],
         outfit_ids=["bikini_01"],
         location_ids=["pool_01"],
-        action="They walk together to the pool and sit on the edge",
+        action="They walk together to the pool and sit down",
     )
-    print(f"\n  Scene prompt: {scene['prompt'][:100]}...")
-    print(f"  Face IDs: {scene['parameters']['face_ids']}")
-    print(f"  Composite: {scene['parameters']['composite_scene']}")
+    print(f"Composite job: {composite['job_type']}")
+    print(f"Prompt: {composite['prompt'][:80]}...")
+
+    print("\n📦 Demo Run Batch From Pack ('portrait_basics'):")
+    pack_jobs = run_batch_from_pack(
+        pack_name="portrait_basics",
+        styles=["photorealistic"],
+    )
+    print(f"Generated {len(pack_jobs)} job(s) from pack 'portrait_basics'.")

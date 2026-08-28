@@ -236,6 +236,12 @@ install_node "ComfyUI-AnimateDiff" "https://github.com/Kosinkadink/ComfyUI-Anima
 install_node "ComfyUI-WanVideoWrapper" "https://github.com/Kijai/ComfyUI-WanVideoWrapper.git"
 install_node "ComfyUI-LTXVideo" "https://github.com/Lightricks/ComfyUI-LTXVideo.git"
 install_node "comfyui-workflow-component" "https://github.com/Pyvideomaker/comfyui-workflow-component.git"
+install_node "ComfyUI-VideoHelperSuite" "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git"
+install_node "ComfyUI-DWPose" "https://github.com/chflame163/ComfyUI-DWPose.git"
+install_node "ComfyUI-PuLID-Flux" "https://github.com/ltdrdata/ComfyUI-PuLID-Flux.git"
+install_node "ComfyUI-LatentSyncWrapper" "https://github.com/kijai/ComfyUI-LatentSyncWrapper.git"
+install_node "ComfyUI-wav2lip" "https://github.com/kijai/ComfyUI-wav2lip.git"
+install_node "ComfyUI-LivePortrait" "https://github.com/kijai/ComfyUI-LivePortrait.git"
 
 log_success "All required custom nodes installed."
 
@@ -411,6 +417,59 @@ download_model \
     "${COMFY_DIR}/models/tts/xtts_v2.pth" \
     "XTTS v2 Model"
 
+# 8. Flux Uncensored (NSFW)
+download_model \
+
+    "https://huggingface.co/Heartsync/Flux-NSFW-uncensored/resolve/main/flux1-dev-uncensored-fp8.safetensors" \
+
+    "${COMFY_DIR}/models/checkpoints/flux-uncensored-fp8.safetensors" \
+
+    "Flux NSFW Uncensored (Heartsync)"
+
+# 9. Pony Diffusion V6 XL (uncensored SDXL)
+download_model \
+
+    "https://civitai.com/api/download/models/257949?type=Model&format=SafeTensor&size=pruned&fp=fp16" \
+
+    "${COMFY_DIR}/models/checkpoints/ponyDiffusionV6XL.safetensors" \
+
+    "Pony Diffusion V6 XL (uncensored)"
+
+# 10. PuLID model (face consistency for Flux)
+download_model \
+
+    "https://huggingface.co/DepthAnything/PuLID/resolve/main/pulid_flux_v0.9.1.safetensors" \
+
+    "${COMFY_DIR}/models/ipadapter/pulid_flux_v0.9.1.safetensors" \
+
+    "PuLID Flux v0.9.1"
+
+# 11. LatentSync (lip sync)
+download_model \
+
+    "https://huggingface.co/jhliu/latentsync/resolve/main/latentsync_unet.pth" \
+
+    "${COMFY_DIR}/models/checkpoints/latentsync_unet.pth" \
+
+    "LatentSync UNet"
+
+# 12. Wav2Lip (lip sync fallback)
+download_model \
+
+    "https://huggingface.co/numz/wav2lip-uhq/resolve/main/wav2lip.pth" \
+
+    "${COMFY_DIR}/models/checkpoints/wav2lip.pth" \
+
+    "Wav2Lip UHQ"
+
+# 13. ControlNet OpenPose SDXL
+download_model \
+
+    "https://huggingface.co/xinsir/controlnet-openpose-sdxl-1.0/resolve/main/diffusion_pytorch_model.safetensors" \
+
+    "${COMFY_DIR}/models/controlnet/controlnet-openpose-sdxl-1.0.safetensors" \
+
+    "ControlNet OpenPose SDXL"
 log_success "All requested AI models downloaded and verified."
 
 # ==============================================================================
