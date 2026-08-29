@@ -1,6 +1,7 @@
 """
-ShimiStudio Worker v2.0
+ShimiStudio Worker v2.1
 Main worker daemon for local-first AI video and image production.
+Added: lora_training, realtime_avatar support.
 """
 
 import os
@@ -33,10 +34,19 @@ from batch_generator import (
     create_composite_scene,
 )
 
+# Try importing LoRA trainer (optional — only needed for lora_training jobs)
+try:
+    from lora_trainer import process_lora_training_job
+    LORA_AVAILABLE = True
+except ImportError:
+    LORA_AVAILABLE = False
+
 
 class ShimiStudioWorker:
     """
     Main worker process for processing RenderJobs from Base44.
+    Supports: text_to_image, image_to_video, text_to_video, face_swap, face_id,
+              upscale, controlnet_pose, tts_lipsync, lora_training, realtime_avatar.
     """
 
     def __init__(
@@ -78,11 +88,53 @@ class ShimiStudioWorker:
             except Exception:
                 parameters = {}
 
-        self.logger.info(f"⚙️ Processing job [{job_id}] type={job_type}, prompt='{prompt[:50]}...'")
+        self.logger.info(f"Processing job [{job_id}] type={job_type}, prompt='{prompt[:50]}...'")
 
         try:
             output_filepath = None
             result_type = "image"
+
+            # ── LoRA Training ──────────────────────────────────
+            if job_type == "lora_training":
+                if not LORA_AVAILABLE:
+                    raise RuntimeError(
+                        "lora_trainer.py not available. Install training deps: "
+                        "pip install peft diffusers accelerate safetensors"
+                    )
+                self.logger.info(f"Starting LoRA training for '{prompt}' with {len(job.get('face_images', []))} images")
+                self.base44_client.update_progress(job_id, 10)
+
+                result = process_lora_training_job(job)
+                if result.get("success"):
+                    output_url = result.get("lora_url") or result.get("output_url", "")
+                    self.base44_client.complete_job(
+                        job_id=job_id,
+                        output_url=output_url,
+                        result_type="lora",
+                    )
+                    self.logger.info(f"LoRA training completed: {output_url}")
+                    return True
+                else:
+                    raise RuntimeError(result.get("error", "LoRA training failed"))
+
+            # ── Realtime Avatar (streaming — no batch output) ──
+            elif job_type == "realtime_avatar":
+                result_type = "video"
+                if not self.check_comfyui():
+                    raise RuntimeError("ComfyUI is required for realtime_avatar but is not running.")
+                # Realtime avatar is a streaming pipeline, not a batch job.
+                # The worker reports it as completed with a placeholder URL.
+                # The actual streaming happens via WebRTC connection to ComfyUI.
+                self.logger.info("Realtime avatar job — streaming mode")
+                self.base44_client.update_progress(job_id, 50)
+                # Mark as completed — the actual streaming is handled by phone_camera.py
+                self.base44_client.complete_job(
+                    job_id=job_id,
+                    output_url="realtime_stream_active",
+                    result_type="stream",
+                )
+                self.logger.info("Realtime avatar stream started")
+                return True
 
             # 1. Batch jobs handling
             if job_type == "batch_image":
@@ -267,12 +319,12 @@ class ShimiStudioWorker:
                 output_url=output_url,
                 result_type=result_type,
             )
-            self.logger.info(f"✅ Job [{job_id}] completed successfully -> {output_url}")
+            self.logger.info(f"Job [{job_id}] completed successfully -> {output_url}")
             return True
 
         except Exception as e:
             err_msg = str(e)
-            self.logger.error(f"❌ Job [{job_id}] failed: {err_msg}")
+            self.logger.error(f"Job [{job_id}] failed: {err_msg}")
             self.logger.debug(traceback.format_exc())
             try:
                 self.base44_client.fail_job(job_id=job_id, error_message=err_msg)
@@ -286,8 +338,12 @@ class ShimiStudioWorker:
         claims them, executes them, and handles graceful shutdown on interrupt.
         """
         self.running = True
-        self.logger.info(f"🚀 ShimiStudio Worker [{self.worker_id}] starting...")
+        self.logger.info(f"ShimiStudio Worker [{self.worker_id}] starting...")
         self.logger.info(f"ComfyUI URL: {self.comfyui_url} | Engine Mode: {ENGINE_MODE} | Poll Interval: {POLL_INTERVAL}s")
+        if LORA_AVAILABLE:
+            self.logger.info("LoRA training: available")
+        else:
+            self.logger.info("LoRA training: not available (install peft diffusers accelerate to enable)")
 
         while self.running:
             try:
