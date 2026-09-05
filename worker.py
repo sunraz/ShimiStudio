@@ -1,394 +1,336 @@
-"""
-ShimiStudio Worker v2.1
-Main worker daemon for local-first AI video and image production.
-Added: lora_training, realtime_avatar support.
-"""
+import requests, time, json, os, sys, traceback, urllib.request, base64
 
-import os
-import sys
-import time
-import json
-import traceback
-from pathlib import Path
-from typing import Dict, Any, Optional
+cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+with open(cfg_path, encoding="utf-8-sig") as f:
+    cfg = json.load(f)
 
-from config import *
-from base44_client import Base44Client
-from comfyui_client import ComfyUIClient, submit_and_wait
-from workflows import (
-    get_workflow_for_job,
-    build_text_to_image,
-    build_image_to_video,
-    build_text_to_video,
-    build_face_swap,
-    build_face_id,
-    build_upscale,
-    build_controlnet_pose,
-    build_tts_lipsync,
-)
-from style_library import build_image_prompt, build_video_prompt
-from free_api import generate_image_free, generate_video_free
-from batch_generator import (
-    batch_generate_images,
-    batch_generate_videos,
-    create_composite_scene,
-)
+TOKEN = cfg["token"]
+NAME = cfg["name"]
+API = cfg["apiBase"].rstrip("/")
+COMFYUI = "http://127.0.0.1:8188"
+STUDIO_API = "https://solas-6a095a77.base44.app/functions/shimiStudioAPI"
 
-# Try importing LoRA trainer (optional — only needed for lora_training jobs)
-try:
-    from lora_trainer import process_lora_training_job
-    LORA_AVAILABLE = True
-except ImportError:
-    LORA_AVAILABLE = False
-
-
-class ShimiStudioWorker:
-    """
-    Main worker process for processing RenderJobs from Base44.
-    Supports: text_to_image, image_to_video, text_to_video, face_swap, face_id,
-              upscale, controlnet_pose, tts_lipsync, lora_training, realtime_avatar.
-    """
-
-    def __init__(
-        self,
-        worker_id: str = WORKER_ID,
-        comfyui_url: str = COMFYUI_URL,
-    ):
-        self.worker_id = worker_id or WORKER_ID
-        self.comfyui_url = comfyui_url or COMFYUI_URL
-        self.base44_client = Base44Client(app_id=BASE44_APP_ID, entity_name=BASE44_ENTITY)
-        self.comfyui = ComfyUIClient(self.comfyui_url)
-        self.logger = setup_logger("worker")
-        self.running = False
-
-    def check_comfyui(self) -> bool:
-        """Verifies if ComfyUI server is reachable."""
-        return self.comfyui.is_running()
-
-    def process_job(self, job: dict) -> bool:
-        """
-        Processes a single job dictionary from Base44 queue.
-        Dispatches according to job_type, handles ComfyUI/Free API execution,
-        uploads result, and updates Base44 status.
-        """
-        job_id = job.get("id") or job.get("_id")
-        if not job_id:
-            self.logger.error("Cannot process job without an 'id' field")
-            return False
-
-        job_type = job.get("job_type", "text_to_image")
-        prompt = job.get("prompt", "")
-        negative_prompt = job.get("negative_prompt", "")
-
-        # Parse parameters if formatted as string
-        parameters = job.get("parameters", {})
-        if isinstance(parameters, str):
-            try:
-                parameters = json.loads(parameters)
-            except Exception:
-                parameters = {}
-
-        self.logger.info(f"Processing job [{job_id}] type={job_type}, prompt='{prompt[:50]}...'")
-
-        try:
-            output_filepath = None
-            result_type = "image"
-
-            # ── LoRA Training ──────────────────────────────────
-            if job_type == "lora_training":
-                if not LORA_AVAILABLE:
-                    raise RuntimeError(
-                        "lora_trainer.py not available. Install training deps: "
-                        "pip install peft diffusers accelerate safetensors"
-                    )
-                self.logger.info(f"Starting LoRA training for '{prompt}' with {len(job.get('face_images', []))} images")
-                self.base44_client.update_progress(job_id, 10)
-
-                result = process_lora_training_job(job)
-                if result.get("success"):
-                    output_url = result.get("lora_url") or result.get("output_url", "")
-                    self.base44_client.complete_job(
-                        job_id=job_id,
-                        output_url=output_url,
-                        result_type="lora",
-                    )
-                    self.logger.info(f"LoRA training completed: {output_url}")
-                    return True
-                else:
-                    raise RuntimeError(result.get("error", "LoRA training failed"))
-
-            # ── Realtime Avatar (streaming — no batch output) ──
-            elif job_type == "realtime_avatar":
-                result_type = "video"
-                if not self.check_comfyui():
-                    raise RuntimeError("ComfyUI is required for realtime_avatar but is not running.")
-                # Realtime avatar is a streaming pipeline, not a batch job.
-                # The worker reports it as completed with a placeholder URL.
-                # The actual streaming happens via WebRTC connection to ComfyUI.
-                self.logger.info("Realtime avatar job — streaming mode")
-                self.base44_client.update_progress(job_id, 50)
-                # Mark as completed — the actual streaming is handled by phone_camera.py
-                self.base44_client.complete_job(
-                    job_id=job_id,
-                    output_url="realtime_stream_active",
-                    result_type="stream",
-                )
-                self.logger.info("Realtime avatar stream started")
-                return True
-
-            # 1. Batch jobs handling
-            if job_type == "batch_image":
-                styles = parameters.get("styles")
-                moods = parameters.get("moods")
-                faceid_id = parameters.get("faceid_id")
-                aspect_ratio = parameters.get("aspect_ratio", "1:1")
-                character = parameters.get("character")
-                sub_jobs = batch_generate_images(
-                    base_prompt=prompt,
-                    styles=styles,
-                    moods=moods,
-                    faceid_id=faceid_id,
-                    aspect_ratio=aspect_ratio,
-                    character=character,
-                )
-                created_count = 0
-                for sj in sub_jobs:
-                    self.base44_client.create_job(**sj)
-                    created_count += 1
-                self.base44_client.complete_job(
-                    job_id=job_id,
-                    output_url=f"Successfully created {created_count} image jobs",
-                    result_type="batch",
-                )
-                return True
-
-            elif job_type == "batch_video":
-                video_styles = parameters.get("video_styles")
-                faceid_id = parameters.get("faceid_id")
-                custom_video_prompt = parameters.get("custom_video_prompt")
-                sub_jobs = batch_generate_videos(
-                    base_image_prompt=prompt,
-                    video_styles=video_styles,
-                    faceid_id=faceid_id,
-                    custom_video_prompt=custom_video_prompt,
-                )
-                created_count = 0
-                for sj in sub_jobs:
-                    self.base44_client.create_job(**sj)
-                    created_count += 1
-                self.base44_client.complete_job(
-                    job_id=job_id,
-                    output_url=f"Successfully created {created_count} video jobs",
-                    result_type="batch",
-                )
-                return True
-
-            elif job_type == "composite_scene":
-                face_ids = parameters.get("face_ids", [])
-                outfit_ids = parameters.get("outfit_ids")
-                location_ids = parameters.get("location_ids")
-                action = parameters.get("action", "")
-                style = parameters.get("style", "cinematic")
-                mood = parameters.get("mood", "sensual")
-                aspect_ratio = parameters.get("aspect_ratio", "16:9")
-                scene_job = create_composite_scene(
-                    face_ids=face_ids,
-                    outfit_ids=outfit_ids,
-                    location_ids=location_ids,
-                    action=action,
-                    style=style,
-                    mood=mood,
-                    aspect_ratio=aspect_ratio,
-                )
-                created = self.base44_client.create_job(**scene_job)
-                created_id = created.get("id") if isinstance(created, dict) else "composite_created"
-                self.base44_client.complete_job(
-                    job_id=job_id,
-                    output_url=f"Created composite scene job: {created_id}",
-                    result_type="composite",
-                )
-                return True
-
-            # 2. Individual job handlers
-            comfy_running = self.check_comfyui()
-
-            if job_type == "text_to_image":
-                width = parameters.get("width", 1024)
-                height = parameters.get("height", 1024)
-
-                if (ENGINE_MODE in ("auto", "free_api")) and not comfy_running:
-                    self.logger.info("ComfyUI not running. Falling back to free API for text_to_image...")
-                    free_res = generate_image_free(
-                        prompt=prompt,
-                        negative=negative_prompt,
-                        width=width,
-                        height=height,
-                    )
-                    if isinstance(free_res, dict) and "error" in free_res:
-                        raise RuntimeError(f"Free API image generation failed: {free_res['error']}")
-                    output_filepath = free_res.get("url") if isinstance(free_res, dict) else free_res
-                else:
-                    wf = build_text_to_image(prompt=prompt, negative_prompt=negative_prompt, parameters=parameters)
-                    output_filepath = self.comfyui.submit_and_wait(wf)
-
-            elif job_type == "image_to_video":
-                result_type = "video"
-                reference_image = job.get("reference_image") or parameters.get("reference_image", "")
-                if comfy_running:
-                    wf = build_image_to_video(prompt=prompt, reference_image=reference_image, parameters=parameters)
-                    output_filepath = self.comfyui.submit_and_wait(wf)
-                else:
-                    self.logger.info("ComfyUI not running. Falling back to free video API...")
-                    free_res = generate_video_free(prompt=prompt, image_url=reference_image)
-                    if isinstance(free_res, dict) and "error" in free_res:
-                        raise RuntimeError(f"Free video API generation failed: {free_res['error']}")
-                    output_filepath = free_res.get("url") if isinstance(free_res, dict) else free_res
-
-            elif job_type == "text_to_video":
-                result_type = "video"
-                if comfy_running:
-                    wf = build_text_to_video(prompt=prompt, negative_prompt=negative_prompt, parameters=parameters)
-                    output_filepath = self.comfyui.submit_and_wait(wf)
-                else:
-                    self.logger.info("ComfyUI not running. Falling back to free video API...")
-                    free_res = generate_video_free(prompt=prompt)
-                    if isinstance(free_res, dict) and "error" in free_res:
-                        raise RuntimeError(f"Free video API generation failed: {free_res['error']}")
-                    output_filepath = free_res.get("url") if isinstance(free_res, dict) else free_res
-
-            elif job_type == "face_swap":
-                reference_image = job.get("reference_image") or parameters.get("reference_image", "")
-                face_swap_target = job.get("face_swap_target") or parameters.get("face_swap_target", "")
-                if not comfy_running:
-                    raise RuntimeError("ComfyUI is required for face_swap but is not running.")
-                wf = build_face_swap(reference_image=reference_image, face_swap_target=face_swap_target, parameters=parameters)
-                output_filepath = self.comfyui.submit_and_wait(wf)
-
-            elif job_type == "face_id":
-                face_images = job.get("face_images") or parameters.get("face_images", [])
-                if isinstance(face_images, str):
-                    try:
-                        face_images = json.loads(face_images)
-                    except Exception:
-                        face_images = [face_images]
-                if not comfy_running:
-                    raise RuntimeError("ComfyUI is required for face_id but is not running.")
-                wf = build_face_id(prompt=prompt, face_images=face_images, parameters=parameters)
-                output_filepath = self.comfyui.submit_and_wait(wf)
-
-            elif job_type == "upscale":
-                reference_image = job.get("reference_image") or parameters.get("reference_image", "")
-                if not comfy_running:
-                    raise RuntimeError("ComfyUI is required for upscale but is not running.")
-                wf = build_upscale(reference_image=reference_image, parameters=parameters)
-                output_filepath = self.comfyui.submit_and_wait(wf)
-
-            elif job_type == "controlnet_pose":
-                reference_image = job.get("reference_image") or parameters.get("reference_image", "")
-                if not comfy_running:
-                    raise RuntimeError("ComfyUI is required for controlnet_pose but is not running.")
-                wf = build_controlnet_pose(prompt=prompt, reference_image=reference_image, parameters=parameters)
-                output_filepath = self.comfyui.submit_and_wait(wf)
-
-            elif job_type == "tts_lipsync":
-                result_type = "video"
-                voice_text = job.get("voice_text") or parameters.get("voice_text", prompt)
-                reference_image = job.get("reference_image") or parameters.get("reference_image", "")
-                if not comfy_running:
-                    raise RuntimeError("ComfyUI is required for tts_lipsync but is not running.")
-                wf = build_tts_lipsync(voice_text=voice_text, reference_image=reference_image, parameters=parameters)
-                output_filepath = self.comfyui.submit_and_wait(wf)
-
-            else:
-                raise ValueError(f"Unknown or unsupported job_type: {job_type}")
-
-            # 3. Handle generated output upload and completion
-            if not output_filepath:
-                raise RuntimeError(f"Job processing produced no output filepath for job [{job_id}]")
-
-            self.base44_client.update_progress(job_id, 90)
-
-            # If output is already a remote URL (e.g. from free API), use directly; else upload
-            if str(output_filepath).startswith("http://") or str(output_filepath).startswith("https://"):
-                output_url = str(output_filepath)
-            else:
-                output_url = self.base44_client.upload_output(str(output_filepath))
-
-            self.base44_client.complete_job(
-                job_id=job_id,
-                output_url=output_url,
-                result_type=result_type,
-            )
-            self.logger.info(f"Job [{job_id}] completed successfully -> {output_url}")
-            return True
-
-        except Exception as e:
-            err_msg = str(e)
-            self.logger.error(f"Job [{job_id}] failed: {err_msg}")
-            self.logger.debug(traceback.format_exc())
-            try:
-                self.base44_client.fail_job(job_id=job_id, error_message=err_msg)
-            except Exception as update_err:
-                self.logger.error(f"Failed to set job status to failed: {update_err}")
-            return False
-
-    def run(self):
-        """
-        Main worker loop. Continuously checks pending jobs from Base44,
-        claims them, executes them, and handles graceful shutdown on interrupt.
-        """
-        self.running = True
-        self.logger.info(f"ShimiStudio Worker [{self.worker_id}] starting...")
-        self.logger.info(f"ComfyUI URL: {self.comfyui_url} | Engine Mode: {ENGINE_MODE} | Poll Interval: {POLL_INTERVAL}s")
-        if LORA_AVAILABLE:
-            self.logger.info("LoRA training: available")
-        else:
-            self.logger.info("LoRA training: not available (install peft diffusers accelerate to enable)")
-
-        while self.running:
-            try:
-                # If engine mode explicitly mandates comfyui, check it
-                if ENGINE_MODE == "comfyui" and not self.check_comfyui():
-                    self.logger.warning("ComfyUI server is unreachable (ENGINE_MODE='comfyui'). Waiting...")
-                    time.sleep(POLL_INTERVAL)
-                    continue
-
-                pending_jobs = self.base44_client.get_pending_jobs(limit=5)
-                if not pending_jobs:
-                    time.sleep(POLL_INTERVAL)
-                    continue
-
-                self.logger.info(f"Fetched {len(pending_jobs)} pending job(s)")
-                for job in pending_jobs:
-                    if not self.running:
-                        break
-
-                    job_id = job.get("id") or job.get("_id")
-                    if not job_id:
-                        continue
-
-                    claimed_job = self.base44_client.claim_job(job_id=job_id, worker_id=self.worker_id)
-                    if claimed_job:
-                        job_to_process = claimed_job if isinstance(claimed_job, dict) and "job_type" in claimed_job else job
-                        self.process_job(job_to_process)
-
-            except KeyboardInterrupt:
-                self.logger.info("KeyboardInterrupt received. Shutting down worker...")
-                self.stop()
-                break
-            except Exception as e:
-                self.logger.error(f"Error in worker main loop: {e}")
-                time.sleep(POLL_INTERVAL)
-
-    def stop(self):
-        """Stops the worker daemon."""
-        self.logger.info(f"Stopping ShimiStudio Worker [{self.worker_id}]...")
-        self.running = False
-
-
-if __name__ == "__main__":
-    worker = ShimiStudioWorker()
+def post(fn, data, timeout=120):
     try:
-        worker.run()
-    except KeyboardInterrupt:
-        worker.stop()
+        r = requests.post(f"{API}/functions/{fn}", json=data, timeout=timeout)
+        return r.json()
+    except Exception as e:
+        print(f"  API err: {e}")
+        return {}
+
+def studio_post(data, timeout=180):
+    try:
+        r = requests.post(STUDIO_API, json=data, timeout=timeout)
+        return r.json()
+    except Exception as e:
+        print(f"  Studio API err: {e}")
+        return {}
+
+def comfy_post(endpoint, data, timeout=300):
+    try:
+        r = requests.post(f"{COMFYUI}/{endpoint}", json=data, timeout=timeout)
+        return r.json()
+    except Exception as e:
+        print(f"  ComfyUI err: {e}")
+        return {}
+
+def comfy_get(endpoint, timeout=30):
+    try:
+        r = requests.get(f"{COMFYUI}/{endpoint}", timeout=timeout)
+        return r.json()
+    except Exception as e:
+        print(f"  ComfyUI err: {e}")
+        return {}
+
+def check_comfyui():
+    try:
+        r = requests.get(f"{COMFYUI}/system_stats", timeout=5)
+        return r.status_code == 200
+    except:
+        return False
+
+def upload_file(filepath):
+    fname = os.path.basename(filepath)
+    print(f"  Uploading {fname}...")
+    try:
+        with open(filepath, "rb") as f:
+            data = base64.b64encode(f.read()).decode("utf-8")
+        d = studio_post({"action": "upload_image", "image_data": data, "filename": fname}, timeout=180)
+        if d.get("success") and d.get("url"):
+            print(f"  Uploaded ({d.get('method','base44')}): {d['url']}")
+            return d["url"]
+        else:
+            print(f"  Superagent: {d.get('error','failed')}")
+    except Exception as e:
+        print(f"  Superagent failed: {e}")
+    
+    for service, url_base in [("tmpfiles","https://tmpfiles.org/api/v1/upload"),("0x0.st","https://0x0.st"),("catbox","https://catbox.moe/user/api.php")]:
+        try:
+            with open(filepath, "rb") as f:
+                if service == "catbox":
+                    r = requests.post(url_base, data={"reqtype":"fileupload"}, files={"fileToUpload":(fname,f)}, timeout=120)
+                    if r.status_code == 200 and r.text.strip().startswith("http"): return r.text.strip()
+                elif service == "tmpfiles":
+                    r = requests.post(url_base, files={"file":(fname,f)}, timeout=120)
+                    if r.status_code == 200:
+                        url = r.json().get("data",{}).get("url","").replace("tmpfiles.org/","tmpfiles.org/dl/")
+                        if url: return url
+                else:
+                    r = requests.post(url_base, files={"file":(fname,f)}, timeout=120)
+                    if r.status_code == 200 and r.text.strip().startswith("http"): return r.text.strip()
+        except: pass
+    return ""
+
+def get_available_models():
+    try:
+        r = requests.get(f"{COMFYUI}/object_info/CheckpointLoaderSimple", timeout=10)
+        d = r.json()
+        models = d.get("CheckpointLoaderSimple",{}).get("input",{}).get("required",{}).get("ckpt_name",[[]])
+        return models[0] if models and isinstance(models[0], list) else models
+    except: return []
+
+def get_available_loras():
+    try:
+        r = requests.get(f"{COMFYUI}/object_info/LoraLoader", timeout=10)
+        d = r.json()
+        loras = d.get("LoraLoader",{}).get("input",{}).get("required",{}).get("lora_name",[[]])
+        return loras[0] if loras and isinstance(loras[0], list) else []
+    except: return []
+
+def pick_model(job=None):
+    models = get_available_models()
+    if job and isinstance(job, dict):
+        jm = job.get("model","")
+        if jm:
+            for m in models:
+                if jm.lower() in m.lower() or m.lower() in jm.lower(): return m
+    for m in models:
+        if any(x in m.lower() for x in ["cyber","realistic","dreamshaper","v1-5","sd15"]): return m
+    return models[0] if models else "cyberrealistic_final.safetensors"
+
+def download_reference_image(url, filepath):
+    try:
+        r = requests.get(url, timeout=30)
+        if r.status_code == 200:
+            with open(filepath, "wb") as f: f.write(r.content)
+            print(f"  Reference downloaded")
+            return filepath
+    except Exception as e:
+        print(f"  Ref failed: {e}")
+    return None
+
+def generate_image(prompt, negative="", width=768, height=768, steps=25, reference_image=None, job=None):
+    model_name = pick_model(job)
+    print(f"  Model: {model_name}")
+    is_sd15 = any(x in model_name.lower() for x in ["cyber","realistic","anything","dreamshaper","v1-5","sd15","aom3","orangemix"])
+    if is_sd15:
+        cfg=7.0; sampler="dpmpp_2m"; scheduler="karras"
+        neg = "bad quality, low quality, blurry, deformed, ugly, bad anatomy"
+        negative = (negative+", "+neg) if negative else neg
+    else:
+        cfg=1.0; sampler="euler"; scheduler="simple"
+
+    wf = {}; nid=[0]
+    def nid_(): nid[0]+=1; return str(nid[0])
+
+    ckpt = nid_(); wf[ckpt] = {"class_type":"CheckpointLoaderSimple","inputs":{"ckpt_name":model_name}}
+    m=[ckpt,0]; c=[ckpt,1]; v=[ckpt,2]
+
+    for lora in get_available_loras()[:3]:
+        lid=nid_(); wf[lid]={"class_type":"LoraLoader","inputs":{"lora_name":lora,"strength_model":0.5,"strength_clip":0.5,"model":m,"clip":c}}
+        m=[lid,0]; c=[lid,1]; print(f"  LoRA: {lora}")
+
+    ref=None
+    if reference_image and os.path.exists(reference_image):
+        ci=os.path.join(os.path.dirname(os.path.abspath(__file__)),"ComfyUI","input"); os.makedirs(ci,exist_ok=True)
+        rd=os.path.join(ci,"ref_temp.png")
+        with open(reference_image,"rb") as s, open(rd,"wb") as d: d.write(s.read())
+        li=nid_(); wf[li]={"class_type":"LoadImage","inputs":{"image":"ref_temp.png"}}; ref=[li,0]
+
+    p=nid_(); wf[p]={"class_type":"CLIPTextEncode","inputs":{"text":prompt,"clip":c}}
+    n=nid_(); wf[n]={"class_type":"CLIPTextEncode","inputs":{"text":negative or "","clip":c}}
+
+    if ref:
+        ve=nid_(); wf[ve]={"class_type":"VAEEncode","inputs":{"pixels":ref,"vae":v}}
+        l=nid_(); wf[l]={"class_type":"EmptyLatentImage","inputs":{"width":width,"height":height,"batch_size":1}}; li=[l,0]; dn=0.65
+    else:
+        l=nid_(); wf[l]={"class_type":"EmptyLatentImage","inputs":{"width":width,"height":height,"batch_size":1}}; li=[l,0]; dn=1.0
+
+    s=nid_(); wf[s]={"class_type":"KSampler","inputs":{"seed":int(time.time())%1000000,"steps":steps,"cfg":cfg,"sampler_name":sampler,"scheduler":scheduler,"denoise":dn,"model":m,"positive":[p,0],"negative":[n,0],"latent_image":li}}
+    vd=nid_(); wf[vd]={"class_type":"VAEDecode","inputs":{"samples":[s,0],"vae":v}}
+    sv=nid_(); wf[sv]={"class_type":"SaveImage","inputs":{"images":[vd,0],"filename_prefix":"ShimiStudio"}}
+
+    print(f"  ComfyUI: {len(wf)} nodes")
+    r=comfy_post("prompt",{"prompt":wf})
+    if "prompt_id" not in r: print(f"  Error: {r}"); return None
+    pid=r["prompt_id"]; print(f"  Waiting ({pid})...")
+    for i in range(120):
+        time.sleep(3); h=comfy_get(f"history/{pid}")
+        if pid in h:
+            for _,no in h[pid].get("outputs",{}).items():
+                if "images" in no and no["images"]:
+                    fn=no["images"][0]["filename"]; sf=no["images"][0].get("subfolder","")
+                    print(f"  Ready: {fn}")
+                    local=os.path.join(os.path.dirname(os.path.abspath(__file__)),"output_temp.png")
+                    urllib.request.urlretrieve(f"{COMFYUI}/view?filename={fn}&subfolder={sf}&type=output",local)
+                    return local
+    print("  Timeout"); return None
+
+# === AnimateDiff Video v4.2 — AnimateDiffLoaderV1 עם כל השדות הנדרשים ===
+def generate_video(prompt, negative="", width=512, height=512, frames=16, steps=20, job=None):
+    model_name = pick_model(job)
+    print(f"  Model: {model_name}")
+    print(f"  AnimateDiff: mm_sd_v15_v2.ckpt, {frames} frames @ 8fps = {frames/8:.1f}s")
+
+    is_sd15 = any(x in model_name.lower() for x in ["cyber","realistic","anything","dreamshaper","v1-5","sd15","aom3","orangemix"])
+    if is_sd15:
+        cfg=7.0; sampler="dpmpp_2m"; scheduler="karras"
+        neg = "bad quality, low quality, blurry, deformed, flickering, watermark"
+        negative = (negative+", "+neg) if negative else neg
+    else:
+        cfg=1.0; sampler="euler"; scheduler="simple"
+
+    wf = {}; nid=[0]
+    def nid_(): nid[0]+=1; return str(nid[0])
+
+    # 1. Checkpoint
+    ckpt=nid_(); wf[ckpt]={"class_type":"CheckpointLoaderSimple","inputs":{"ckpt_name":model_name}}
+    m=[ckpt,0]; c=[ckpt,1]; v=[ckpt,2]
+
+    # 2. LoRAs (max 2 for VRAM)
+    for lora in get_available_loras()[:2]:
+        lid=nid_(); wf[lid]={"class_type":"LoraLoader","inputs":{"lora_name":lora,"strength_model":0.4,"strength_clip":0.4,"model":m,"clip":c}}
+        m=[lid,0]; c=[lid,1]; print(f"  LoRA: {lora} @ 0.4")
+
+    # 3. EmptyLatentImage — לפני AnimateDiffLoaderV1 כי הוא דורש latents
+    latent=nid_(); wf[latent]={"class_type":"EmptyLatentImage","inputs":{"width":width,"height":height,"batch_size":frames}}
+
+    # 4. AnimateDiffLoaderV1 עם כל השדות הנדרשים
+    ad=nid_(); wf[ad]={
+        "class_type":"AnimateDiffLoaderV1",
+        "inputs":{
+            "model": m,
+            "latents": [latent, 0],
+            "model_name": "mm_sd_v15_v2.ckpt",
+            "beta_schedule": "sqrt_linear (AnimateDiff)","unlimited_area_hack": False
+        }
+    }
+    m=[ad,0]  # MODEL עם motion
+
+    # 5. Prompts
+    p=nid_(); wf[p]={"class_type":"CLIPTextEncode","inputs":{"text":prompt,"clip":c}}
+    n=nid_(); wf[n]={"class_type":"CLIPTextEncode","inputs":{"text":negative or "","clip":c}}
+
+    # 6. KSampler
+    s=nid_(); wf[s]={"class_type":"KSampler","inputs":{"seed":int(time.time())%1000000,"steps":steps,"cfg":cfg,"sampler_name":sampler,"scheduler":scheduler,"denoise":1.0,"model":m,"positive":[p,0],"negative":[n,0],"latent_image":[latent,0]}}
+
+    # 7. VAEDecode
+    vd=nid_(); wf[vd]={"class_type":"VAEDecode","inputs":{"samples":[s,0],"vae":v}}
+
+    # 8. SaveAnimatedWEBP
+    sv=nid_(); wf[sv]={"class_type":"SaveAnimatedWEBP","inputs":{"images":[vd,0],"filename_prefix":"ShimiStudio","fps":8,"lossless":False,"quality":85,"method":"default"}}
+
+    print(f"  ComfyUI: {len(wf)} nodes, {frames} frames")
+    r=comfy_post("prompt",{"prompt":wf})
+    if "prompt_id" not in r: print(f"  Error: {r}"); return None
+    pid=r["prompt_id"]; print(f"  Rendering video ({pid})... ~3-5 min")
+    for i in range(200):
+        time.sleep(3); h=comfy_get(f"history/{pid}")
+        if pid in h:
+            for _,no in h[pid].get("outputs",{}).items():
+                if "images" in no and no["images"]:
+                    fn=no["images"][0]["filename"]; sf=no["images"][0].get("subfolder","")
+                    print(f"  Video ready: {fn}")
+                    local=os.path.join(os.path.dirname(os.path.abspath(__file__)),"output_video.webp")
+                    urllib.request.urlretrieve(f"{COMFYUI}/view?filename={fn}&subfolder={sf}&type=output",local)
+                    return local
+    print("  Timeout (10 min)"); return None
+
+# === MAIN ===
+print("="*50)
+print("  ShimiStudio Worker v4.2 - AnimateDiff Fix v2")
+print("="*50)
+print(f"  ComfyUI: {COMFYUI}")
+print(f"  API: {API}")
+print(f"  Upload: {STUDIO_API}")
+print()
+
+if not check_comfyui():
+    print("  ComfyUI OFFLINE!"); sys.exit(1)
+
+stats = comfy_get("system_stats")
+dev = stats.get("system",{}).get("devices",[{}])[0]
+print(f"  GPU: {dev.get('name','?')}")
+print(f"  VRAM: {dev.get('vram_total',0)//(1024*1024)}MB")
+print("  ComfyUI: ONLINE")
+
+models = get_available_models()
+loras = get_available_loras()
+print(f"  Checkpoints: {models}")
+print(f"  LoRAs: {loras}")
+print()
+
+post("workerApi",{"action":"register","token":TOKEN,"name":NAME,"os_type":"windows","gpu_model":"Quadro P2200","vram_total":5368578048,"checkpoints":models,"loras":loras})
+print("  Registered\n")
+studio_post({"action":"report_models","worker_id":NAME,"models":models,"loras":loras,"vram":5120})
+
+while True:
+    try:
+        post("workerApi",{"action":"heartbeat","token":TOKEN,"status":"online","gpu_util":0,"vram_used":0,"ping_ms":10,"checkpoints":models,"loras":loras})
+        r = post("jobApi",{"action":"claim","token":TOKEN})
+        job = r.get("job")
+        if job:
+            jid=job.get("id","?"); jtype=job.get("type",job.get("job_type","image"))
+            prompt=job.get("prompt",""); job_model=job.get("model","")
+            job_lora=job.get("lora_path") or job.get("lora_url") or ""
+            ref_url=job.get("source_image") or job.get("reference_image") or ""
+            duration=job.get("duration",6)
+            print(f"\n{'='*50}")
+            print(f"  Job: {jid} | Type: {jtype}")
+            print(f"  Prompt: {prompt[:80]}")
+            if job_model: print(f"  Model: {job_model}")
+
+            post("workerApi",{"action":"heartbeat","token":TOKEN,"status":"busy","current_job_type":jtype,"current_job_progress":0,"current_job_prompt":prompt[:80]})
+
+            try:
+                ref_path=None
+                if ref_url and ref_url.startswith("http"):
+                    ref_path=os.path.join(os.path.dirname(os.path.abspath(__file__)),"ref_temp.png")
+                    download_reference_image(ref_url,ref_path)
+
+                path=None
+                if jtype=="video":
+                    frames=16
+                    try:
+                        path=generate_video(prompt,job.get("negative_prompt",""),512,512,frames,20,job)
+                    except Exception as ve:
+                        print(f"  Video error: {ve}")
+                        print(f"  Retry with 8 frames...")
+                        try: path=generate_video(prompt,job.get("negative_prompt",""),512,512,8,15,job)
+                        except: path=None
+                else:
+                    path=generate_image(prompt,job.get("negative_prompt",""),reference_image=ref_path,job=job)
+
+                if path:
+                    url=upload_file(path)
+                    if url:
+                        print(f"  SUCCESS: {url}")
+                        post("jobApi",{"action":"complete","job_id":jid,"result_url":url})
+                    else:
+                        post("jobApi",{"action":"fail","job_id":jid,"error":"Upload failed"})
+                else:
+                    post("jobApi",{"action":"fail","job_id":jid,"error":"Generation failed"})
+
+                try:
+                    if path and os.path.exists(path): os.remove(path)
+                    if ref_path and os.path.exists(ref_path): os.remove(ref_path)
+                except: pass
+            except Exception as e:
+                print(f"  ERROR: {e}"); traceback.print_exc()
+                post("jobApi",{"action":"fail","job_id":jid,"error":str(e)})
+
+            post("workerApi",{"action":"heartbeat","token":TOKEN,"status":"online","current_job_type":None,"current_job_progress":0,"checkpoints":models,"loras":loras})
+            print(f"  Done: {jid}\n{'='*50}")
+    except Exception as e:
+        print(f"  Loop error: {e}")
+    time.sleep(5)

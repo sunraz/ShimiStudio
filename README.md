@@ -1,4 +1,34 @@
-# ShimiStudio v2.0
+# ShimiStudio
+
+## Current Version: v4.2 (05.09.2026)
+
+**גרסה עובדת — Worker v4.2 עם AnimateDiff**
+
+- `worker.py` — Worker v4.2: תמונות (SD 1.5 + LoRAs) + וידאו (AnimateDiff mm_sd_v15_v2.ckpt, 16 פריימים @ 8fps)
+- `install.py` — Installer קנוני יחיד (גרסאות ישנות ב-archive/installers-legacy/)
+- `config.example.json` — תבנית הגדרות (להעתיק ל-config.json ולמלא token)
+- `download_loras.py` / `download_checkpoints.py` — הורדת נכסים (דורש CIVITAI_API_KEY ב-env)
+
+### Quick Start
+```powershell
+# 1. התקנה (env vars: GITHUB_TOKEN, CIVITAI_API_KEY)
+python install.py
+
+# 2. הגדרות — העתק את config.example.json ל-config.json ומלא token מה-Studio UI
+
+# 3. הפעלה
+python worker.py
+```
+
+### Version History
+- **v4.2** (05.09) — AnimateDiffLoaderV1 עם beta_schedule="sqrt_linear (AnimateDiff)", תיקון סודות, installer קנוני
+- **v4.1** — AnimateDiffLoaderV1 (M_MODELS → MODEL)
+- **v4.0** — AnimateDiff וידאו לוקאלי (מחליף API חיצוני עם פילטר תוכן)
+- **v3.3** — דיווח checkpoints + LoRAs דרך workerApi
+- **v3.2** — Upload דרך Base44 במקום catbox
+- **v2.1** — lora_trainer + realtime_avatar (ישן)
+
+---
 
 ## מה זה
 ShimiStudio היא מערכת יצירת תוכן AI מקומית (local-first). הכל רץ על המחשב שלך — אין ענן, אין שרתים, אין תשלום חודשי. המערכת מספקת פתרון מקצה לקצה ליצירת תמונות, וידאו, Face ID, Face Swap, סנכרון שפתיים (Lip Sync) ושילוב מצלמת טלפון בזמן אמת, תוך שמירה מלאה על פרטיות הנתונים.
