@@ -9,6 +9,9 @@
 - `config.example.json` — תבנית הגדרות (להעתיק ל-config.json ולמלא token)
 - `download_loras.py` / `download_checkpoints.py` — הורדת נכסים (דורש CIVITAI_API_KEY ב-env)
 
+### ☁️ Cloud Worker (חינם — VM אוטומטי)
+[פתח ב-Colab](https://colab.research.google.com/github/sunraz/ShimiStudio/blob/main/cloud/colab_worker_v4.2.ipynb) — Run all, והworker מתחבר לתור לבד (GPU T4 חינם)
+
 ### Quick Start
 ```powershell
 # 1. התקנה (env vars: GITHUB_TOKEN, CIVITAI_API_KEY)
