@@ -681,6 +681,126 @@ def process_training_job(job):
 
     post("workerApi", {"action": "heartbeat", "token": TOKEN, "status": "online", "current_job_type": None, "current_job_progress": 0})
 
+def parse_shots(prompt):
+    """מפרק פרומפט ארוך לרשימת צילומים. פורמטים: שורת '---' בין צילומים, או 'SHOT N:' בתחילת כל צילום."""
+    if not isinstance(prompt, str) or not prompt.strip():
+        return []
+    marks = list(re.finditer(r'(?im)^\s*[>*\-#\s]*\s*shot\s*\d+\s*[:.\-]\s*(.*)$', prompt))
+    if len(marks) >= 2:
+        shots = []
+        for i, m in enumerate(marks):
+            end = marks[i+1].start() if i+1 < len(marks) else len(prompt)
+            first_line = (m.group(1) or "").strip()
+            rest = prompt[m.end():end].strip()
+            text = (first_line + "\n" + rest).strip() if rest else first_line
+            if text:
+                shots.append(text)
+        return shots[:20]
+    parts = re.split(r'(?m)^\s*[-*=~]{3,}\s*$', prompt)
+    parts = [p.strip() for p in parts if p.strip()]
+    if len(parts) >= 2:
+        return parts[:20]
+    return []
+
+def get_ffmpeg_exe():
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return "ffmpeg"
+
+def concat_videos(paths, jid):
+    ff = get_ffmpeg_exe()
+    base = os.path.dirname(os.path.abspath(__file__))
+    lst = os.path.join(base, f"concat_{jid[:8]}.txt")
+    with open(lst, "w") as f:
+        for p in paths:
+            f.write("file '" + os.path.abspath(p).replace("'", "'\''") + "'\n")
+    out = os.path.join(base, f"seq_{jid[:8]}.mp4")
+    r = subprocess.run([ff, "-y", "-f", "concat", "-safe", "0", "-i", lst, "-c", "copy", out], capture_output=True, timeout=600)
+    if r.returncode != 0:
+        r = subprocess.run([ff, "-y", "-f", "concat", "-safe", "0", "-i", lst, "-c:v", "libx264", "-preset", "fast", "-crf", "19", "-pix_fmt", "yuv420p", out], capture_output=True, timeout=3600)
+        if r.returncode != 0:
+            raise RuntimeError("concat failed: " + r.stderr.decode(errors="replace")[-300:])
+    return out
+
+def polish_video(src, tw=None, th=None, fps=24):
+    """האפסקייל lanczos + החלקת פריימים ל-fps רציף. נכשל → מחזיר את המקור."""
+    try:
+        ff = get_ffmpeg_exe()
+        out = src.replace(".mp4", "_final.mp4")
+        vf = []
+        if tw and th:
+            vf.append(f"scale={tw}:{th}:flags=lanczos")
+        if fps:
+            vf.append(f"minterpolate=fps={fps}:mi_mode=blend")
+        if not vf:
+            return src
+        cmd = [ff, "-y", "-i", src, "-vf", ",".join(vf), "-c:v", "libx264", "-preset", "fast", "-crf", "19", "-pix_fmt", "yuv420p", out]
+        r = subprocess.run(cmd, capture_output=True, timeout=3600)
+        if r.returncode == 0 and os.path.getsize(out) > 0:
+            return out
+        return src
+    except Exception:
+        return src
+
+def process_video_sequence(job, jid, seq, model, lora, negative, vw, vh, fr, duration, ref_image_name, src_image_name):
+    """רינדור רצף צילומים קצרים → הדבקה → האפסקייל → השלמה. מחזיר True אם הג'וב טופל עד סופו."""
+    print(f"  Sequence mode: {len(seq)} shots @ {fr}fps | {vw}x{vh}")
+    frames_per_shot = min(24, max(16, int(duration * 8)))
+    base = os.path.dirname(os.path.abspath(__file__))
+    seg_paths = []
+    for si, sp in enumerate(seq):
+        try:
+            post("jobApi", {"action": "progress", "job_id": jid, "progress": int(10 + 70 * si / len(seq))})
+            if src_image_name and si == 0:
+                wf = build_img2vid(sp, negative, src_image_name, lora, model, w=vw, h=vh, frames=frames_per_shot, frame_rate=fr)
+            elif ref_image_name:
+                wf = build_t2i_video_ipadapter(sp, negative, ref_image_name, model, w=vw, h=vh, frames=frames_per_shot, frame_rate=fr)
+            else:
+                wf = build_t2i_video(sp, negative, lora, model, w=vw, h=vh, frames=frames_per_shot, frame_rate=fr)
+            pid = queue_prompt(wf)
+            outs = wait_for_result(pid, jid)
+            if outs is None:
+                return True  # cancelled
+            item, otype = get_output(outs)
+            if not item:
+                raise RuntimeError(f"no output from shot {si+1}")
+            data = download_file(item)
+            seg = os.path.join(base, f"seq_{jid[:8]}_{si:02d}.mp4")
+            with open(seg, "wb") as f:
+                f.write(data)
+            seg_paths.append(seg)
+            print(f"  Shot {si+1}/{len(seq)} done")
+        except Exception as e:
+            print(f"  Shot {si+1}/{len(seq)} failed: {e}")
+    if not seg_paths:
+        post("jobApi", {"action": "fail", "job_id": jid, "error": "All shots failed"})
+        return True
+    post("jobApi", {"action": "progress", "job_id": jid, "progress": 85})
+    try:
+        final = seg_paths[0] if len(seg_paths) == 1 else concat_videos(seg_paths, jid)
+        # האפסקייל ליעד: אנכי → x1.875, אחרת x2
+        tw, th = int(vw * 1.875) // 2 * 2, int(vh * 1.875) // 2 * 2
+        final = polish_video(final, tw, th, fps=24)
+        post("jobApi", {"action": "progress", "job_id": jid, "progress": 92})
+        with open(final, "rb") as f:
+            file_data = f.read()
+        result = post("jobApi", {"action": "complete", "job_id": jid, "file_base64": base64.b64encode(file_data).decode("utf-8"), "file_type": "video/mp4"}, timeout=1200)
+        if result.get("error"):
+            post("jobApi", {"action": "fail", "job_id": jid, "error": result["error"]})
+        else:
+            print(f"  Sequence completed: {jid} ({len(seg_paths)} shots)")
+    except Exception as e:
+        print(f"  Sequence stitch failed: {e}")
+        traceback.print_exc()
+        post("jobApi", {"action": "fail", "job_id": jid, "error": f"stitch failed: {e}"})
+    # ניקוי קטעים זמניים
+    for p in seg_paths:
+        try: os.remove(p)
+        except: pass
+    return True
+
 def process_job(job, character, scene, lora_cfg=None):
     jid = job["id"]
     jtype = job.get("type", "image")
@@ -775,8 +895,22 @@ def process_job(job, character, scene, lora_cfg=None):
                 post("jobApi", {"action": "fail", "job_id": jid, "error": "AnimateDiff motion module not installed — cannot generate video locally. Reinstall worker or use cloud mode."})
                 return
             sdxl = is_sdxl_model(model)
-            vw, vh = (1024, 1024) if sdxl else (512, 512)
+            # פורמט מסך: אנכי (9:16/2:3) או ריבוע
+            ar = str(job.get("aspect_ratio") or "").lower().replace(" ", "")
+            if ar in ("9:16", "vertical", "portrait", "story", "reels", "1080x1920"):
+                vw, vh = (576, 1024) if not sdxl else (1024, 1024)
+            elif ar in ("2:3", "3:4", "1080x1600", "1080x1440"):
+                vw, vh = (512, 768) if not sdxl else (1024, 1024)
+            else:
+                vw, vh = (1024, 1024) if sdxl else (512, 512)
             duration = job.get("duration", 6)
+            # רצף צילומים — פרומפט מרובה שוטים → רינדור כל שוט והדבקה
+            seq = parse_shots(prompt)
+            if len(seq) >= 2:
+                handled = process_video_sequence(job, jid, seq, model, lora, negative, vw, vh, fr=8, duration=duration, ref_image_name=(ref_image_name if use_ipadapter else None), src_image_name=src_image_name)
+                if handled:
+                    post("workerApi", {"action": "heartbeat", "token": TOKEN, "status": "online", "current_job_type": None, "current_job_progress": 0})
+                    return
             frames = min(48, max(16, int(duration * 8)))
             fr = max(1, round(frames / duration))
             if src_image_name:
@@ -912,7 +1046,7 @@ def download_model(dl):
         post("shimiStudioAPI", {"action": "report_download", "model_id": mid, "status": "failed", "error": str(e)})
 
 print("========================================")
-print("  ShimiStudio Worker - Running")
+print("  ShimiStudio Worker v4.3 - Running")
 print("========================================")
 print(f"  Server: {SERVER}")
 print(f"  Name:   {NAME}")
