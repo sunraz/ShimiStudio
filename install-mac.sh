@@ -61,6 +61,7 @@ clone_node() {
 }
 clone_node "ComfyUI_IPAdapter_plus" "https://github.com/cubiq/ComfyUI_IPAdapter_plus.git"
 clone_node "ComfyUI-AnimateDiff-Evolved" "https://github.com/kijai/ComfyUI-AnimateDiff-Evolved.git"
+clone_node "ComfyUI-VideoHelperSuite" "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git"
 clone_node "ComfyUI_ReActor" "https://github.com/Gourieff/ComfyUI_ReActor.git"
 
 # ── 4. סביבה + תלויות ──
@@ -73,6 +74,13 @@ VP="$DIR/venv/bin/python"
 "$VP" -m pip install torch torchvision torchaudio --quiet
 "$VP" -m pip install -r "$COMFYUI_DIR/requirements.txt" --quiet
 ok "PyTorch + תלויות ComfyUI הותקנו"
+step 4.1 "תלויות custom nodes (כולל imageio-ffmpeg לקידוד mp4)..."
+for nd in ComfyUI_IPAdapter_plus ComfyUI-AnimateDiff-Evolved ComfyUI-VideoHelperSuite ComfyUI_ReActor; do
+  if [ -f "$NODES_DIR/$nd/requirements.txt" ]; then
+    "$VP" -m pip install -r "$NODES_DIR/$nd/requirements.txt" --quiet 2>/dev/null || err "תלויות $nd נכשלו חלקית"
+  fi
+done
+ok "תלויות custom nodes טופלו"
 step 4.2 "תלויות ReActor (insightface, onnxruntime) — best-effort..."
 "$VP" -m pip install onnxruntime insightface --quiet 2>/dev/null && ok "ReActor deps הותקנו" || err "ReActor deps נכשלו — face-swap לא יעבוד (לא חוסם)"
 step 4.3 "sd-scripts (LoRA training) — best-effort..."
@@ -162,7 +170,7 @@ def fetch_available_nodes():
         r = requests.get(f"{COMFYUI_URL}/object_info", timeout=15)
         if r.status_code == 200:
             AVAILABLE_NODES = set(r.json().keys())
-            print(f"  ComfyUI nodes: {len(AVAILABLE_NODES)} | IPAdapter={('IPAdapterApply' in AVAILABLE_NODES)} ReActor={('ReActorFaceSwap' in AVAILABLE_NODES)} AnimateDiff={('ADE_AnimateDiffLoaderGen1' in AVAILABLE_NODES)}")
+            print(f"  ComfyUI nodes: {len(AVAILABLE_NODES)} | IPAdapter={('IPAdapterApply' in AVAILABLE_NODES)} ReActor={('ReActorFaceSwap' in AVAILABLE_NODES)} AnimateDiff={('ADE_AnimateDiffLoaderGen1' in AVAILABLE_NODES)} VHS={('VHS_VideoCombine' in AVAILABLE_NODES)}")
         else:
             print(f"  /object_info HTTP {r.status_code} — custom-node workflows disabled")
     except Exception as e:
@@ -293,6 +301,11 @@ def wait_for_result(prompt_id, jid):
         except:
             pass
         elapsed = int((time.time() - start) / 60)
+        if elapsed > 45:
+            try:
+                requests.post(f"{COMFYUI_URL}/interrupt", json={}, timeout=5)
+            except: pass
+            raise TimeoutError("Render exceeded 45 minutes — aborted")
         post("jobApi", {"action": "progress", "job_id": jid, "progress": min(80, 50 + elapsed * 5)})
         time.sleep(3)
 
@@ -754,6 +767,9 @@ def process_job(job, character, scene, lora_cfg=None):
         elif jtype == "video":
             if 'ADE_AnimateDiffLoaderGen1' not in AVAILABLE_NODES:
                 post("jobApi", {"action": "fail", "job_id": jid, "error": "AnimateDiff node not loaded (custom nodes disabled) — cannot generate video locally. Restart worker or use cloud mode."})
+                return
+            if 'VHS_VideoCombine' not in AVAILABLE_NODES:
+                post("jobApi", {"action": "fail", "job_id": jid, "error": "VideoHelperSuite not installed — cannot encode video. Reinstall worker."})
                 return
             if not video_supported(model):
                 post("jobApi", {"action": "fail", "job_id": jid, "error": "AnimateDiff motion module not installed — cannot generate video locally. Reinstall worker or use cloud mode."})
