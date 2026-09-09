@@ -1053,19 +1053,35 @@ print(f"  Name:   {NAME}")
 print(f"  Token:  {TOKEN[:8]}...")
 print()
 
-post("workerApi", {"action":"register","token":TOKEN,"name":NAME,"os_type": ("mac" if sys.platform == "darwin" else ("windows" if os.name == "nt" else "linux")),"gpu_model":"auto","vram_total":0})
-print("  Registered with server")
-scan_loras()
-scan_checkpoints()
+# ── Startup (each step wrapped to prevent crash before main loop) ──
+try:
+    post("workerApi", {"action":"register","token":TOKEN,"name":NAME,"os_type": ("mac" if sys.platform == "darwin" else ("windows" if os.name == "nt" else "linux")),"gpu_model":"auto","vram_total":0})
+    print("  Registered with server")
+except Exception as e:
+    print(f"  Registration failed: {e}")
 
-if start_comfyui():
-    fetch_available_nodes()
-    if 'ADE_AnimateDiffLoaderGen1' not in AVAILABLE_NODES:
-        print("  ! AnimateDiff node not loaded — VIDEO GENERATION WILL FAIL. Reinstall worker or check ComfyUI-AnimateDiff-Evolved in custom_nodes/")
-    if 'IPAdapterApply' not in AVAILABLE_NODES:
-        print("  ! IP-Adapter node not loaded — character reference will use style prompt only.")
-else:
-    print("  WARNING: ComfyUI not available - jobs will fail until ComfyUI is running")
+try:
+    scan_loras()
+except Exception as e:
+    print(f"  LoRA scan failed: {e}")
+
+try:
+    scan_checkpoints()
+except Exception as e:
+    print(f"  Checkpoint scan failed: {e}")
+
+try:
+    if start_comfyui():
+        fetch_available_nodes()
+        if 'ADE_AnimateDiffLoaderGen1' not in AVAILABLE_NODES:
+            print("  ! AnimateDiff node not loaded — VIDEO GENERATION WILL FAIL. Reinstall worker or check ComfyUI-AnimateDiff-Evolved in custom_nodes/")
+        if 'IPAdapterApply' not in AVAILABLE_NODES:
+            print("  ! IP-Adapter node not loaded — character reference will use style prompt only.")
+    else:
+        print("  WARNING: ComfyUI not available - jobs will fail until ComfyUI is running")
+except Exception as e:
+    print(f"  ComfyUI startup error: {e}")
+    print("  Worker continues without ComfyUI — jobs will fail until ComfyUI is running")
 
 while True:
     try:
@@ -1089,7 +1105,8 @@ while True:
         # Check for pending model downloads (lowest priority)
         download_pending_models()
     except Exception as e:
-        print(f"  Error: {e}")
+        print(f"  Loop error: {e}")
+        traceback.print_exc()
     time.sleep(5)
 WORKER_EOF
 
