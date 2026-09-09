@@ -112,6 +112,32 @@ dl "$IPAD/ip-adapter-plus_sd15.safetensors" "https://huggingface.co/h94/IP-Adapt
 dl "$CLIPV/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors" "https://huggingface.co/h94/IP-Adapter/resolve/main/models/image_encoder/model.safetensors" "CLIP Vision (~3.5GB)"
 dl "$MM/mm_sd_v15_v2.ckpt" "https://huggingface.co/guoyww/animatediff/resolve/main/mm_sd_v15_v2.ckpt" "AnimateDiff v2 (~1.6GB)"
 
+# ── 4.3. Heavy video models (Wan 2.2 + LTX-Video) — optional, ~16GB ──
+DIFF="$COMFYUI/models/diffusion_models"
+mkdir -p "$DIFF"
+has_wan=false; has_ltx=false
+[ -f "$DIFF/wan2.2-14b.safetensors" ] && has_wan=true
+[ -f "$DIFF/ltx-video-2b.safetensors" ] && has_ltx=true
+if [ "$has_wan" = false ] && [ "$has_ltx" = false ]; then
+  echo ""
+  echo "  ╔══════════════════════════════════════════════════════╗"
+  echo "  ║  מודלי וידאו כבדים (Wan 2.2 + LTX-Video)            ║"
+  echo "  ║  נפח נדרש: ~16GB נוספים                           ║"
+  echo "  ║  בלעדיהם — רק מנוע AnimateDiff (SD1.5) יעבוד     ║"
+  echo "  ║  איתם — ה-worker יוכל לעבד גם Wan 2.2 ו-LTX      ║"
+  echo "  ╚══════════════════════════════════════════════════════╝"
+  echo ""
+  read -p "  להוריד מודלים כבדים עכשיו? (y/N) " heavy_choice
+  if [ "$heavy_choice" = "y" ] || [ "$heavy_choice" = "Y" ]; then
+    dl "$DIFF/wan2.2-14b.safetensors" "https://huggingface.co/Wan-AI/Wan2.2-T2V-14B/resolve/main/diffusion_models/wan2.2-14b.safetensors" "Wan 2.2 14B (~14GB)"
+    dl "$DIFF/ltx-video-2b.safetensors" "https://huggingface.co/Lightricks/LTX-Video/resolve/main/ltx-video-2b.safetensors" "LTX-Video (~2GB)"
+  else
+    echo "  דילוג — ניתן להוריד מאוחר יותר ע"י הרצת ה-installer מחדש"
+  fi
+elif [ "$has_wan" = true ] && [ "$has_ltx" = true ]; then
+  ok "Wan 2.2 + LTX-Video כבר מותקנים"
+fi
+
 # ── 5. קבצי worker ──
 step 5 "כותב קבצי worker..."
 cat > "$DIR/worker.py" <<'WORKER_EOF'
@@ -1058,9 +1084,26 @@ print(f"  Name:   {NAME}")
 print(f"  Token:  {TOKEN[:8]}...")
 print()
 
+def detect_supported_engines():
+    """Scan models directory and report which video engines are available."""
+    engines = ["ad15"]
+    diffusion_dir = os.path.join(COMFYUI_PATH, "models", "diffusion_models")
+    if os.path.isdir(diffusion_dir):
+        files = os.listdir(diffusion_dir)
+        for f in files:
+            fl = f.lower()
+            if "wan" in fl and fl.endswith(('.safetensors', '.ckpt', '.pt', '.gguf')):
+                if "wan22" not in engines:
+                    engines.append("wan22")
+            if "ltx" in fl and fl.endswith(('.safetensors', '.ckpt', '.pt', '.gguf')):
+                if "ltx" not in engines:
+                    engines.append("ltx")
+    print(f"  Supported engines: {engines}")
+    return engines
+
 # ── Startup (each step wrapped to prevent crash before main loop) ──
 try:
-    post("workerApi", {"action":"register","token":TOKEN,"name":NAME,"os_type": ("mac" if sys.platform == "darwin" else ("windows" if os.name == "nt" else "linux")),"gpu_model":"auto","vram_total":0})
+    post("workerApi", {"action":"register","token":TOKEN,"name":NAME,"os_type": ("mac" if sys.platform == "darwin" else ("windows" if os.name == "nt" else "linux")),"gpu_model":"auto","vram_total":0,"supported_engines":detect_supported_engines()})
     print("  Registered with server")
 except Exception as e:
     print(f"  Registration failed: {e}")
