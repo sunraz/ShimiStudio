@@ -328,6 +328,42 @@ if (-not (Test-Path "$mmDir\mm_sd_v15_v2.ckpt")) {
   } catch { WERR "AnimateDiff v2 download failed: $($_.Exception.Message)" }
 } else { WOK "AnimateDiff v2 exists" }
 
+# ── 4.3. Heavy video models (Wan 2.2 + LTX-Video) — optional, ~16GB ──
+WS 4.3 7 "Heavy video models (Wan 2.2 + LTX) — optional..."
+$diffusionDir = "$comfyuiDir\models\diffusion_models"
+if (-not (Test-Path $diffusionDir)) { New-Item -ItemType Directory -Path $diffusionDir -Force | Out-Null }
+$hasWan = Test-Path "$diffusionDir\wan2.2-14b.safetensors"
+$hasLtx = Test-Path "$diffusionDir\ltx-video-2b.safetensors"
+if (-not $hasWan -and -not $hasLtx) {
+  Write-Host ""
+  Write-Host "  ╔══════════════════════════════════════════════════════╗" -ForegroundColor Yellow
+  Write-Host "  ║  מודלי וידאו כבדים (Wan 2.2 + LTX-Video)            ║" -ForegroundColor Yellow
+  Write-Host "  ║  נפח נדרש: ~16GB נוספים                           ║" -ForegroundColor Yellow
+  Write-Host "  ║  בלעדיהם — רק מנוע AnimateDiff (SD1.5) יעבוד     ║" -ForegroundColor Yellow
+  Write-Host "  ║  איתם — ה-worker יוכל לעבד גם Wan 2.2 ו-LTX      ║" -ForegroundColor Yellow
+  Write-Host "  ╚══════════════════════════════════════════════════════╝" -ForegroundColor Yellow
+  Write-Host ""
+  $heavyChoice = Read-Host "  להוריד מודלים כבדים עכשיו? (y/N)"
+  if ($heavyChoice -eq 'y' -or $heavyChoice -eq 'Y') {
+    Write-Host "  מוריד Wan 2.2 14B (~14GB)... זה ייקח דקות ארוכות"
+    try {
+      Invoke-WebRequest "https://huggingface.co/Wan-AI/Wan2.2-T2V-14B/resolve/main/diffusion_models/wan2.2-14b.safetensors" -OutFile "$diffusionDir\wan2.2-14b.safetensors" -UseBasicParsing -ErrorAction Stop
+      WOK "Wan 2.2 14B הורד"
+    } catch { WERR "Wan 2.2 download failed: $($_.Exception.Message) — ניתן להוריד ידנית later" }
+    Write-Host "  מוריד LTX-Video 2B (~2GB)..."
+    try {
+      Invoke-WebRequest "https://huggingface.co/Lightricks/LTX-Video/resolve/main/ltx-video-2b.safetensors" -OutFile "$diffusionDir\ltx-video-2b.safetensors" -UseBasicParsing -ErrorAction Stop
+      WOK "LTX-Video הורד"
+    } catch { WERR "LTX-Video download failed: $($_.Exception.Message)" }
+  } else {
+    Write-Host "  דילוג — ניתן להוריד מאוחר יותר ע"י הרצת ה-installer מחדש" -ForegroundColor DarkGray
+  }
+} elseif ($hasWan -and $hasLtx) {
+  WOK "Wan 2.2 + LTX-Video כבר מותקנים"
+} else {
+  if ($hasWan) { WOK "Wan 2.2 קיים" } else { WOK "LTX-Video קיים" }
+}
+
 # ── 4.5. Stop existing worker (aggressive) ──
 WS 5 7 "Stopping existing worker..."
 $stopped = 0
@@ -1299,9 +1335,26 @@ print(f"  Name:   {NAME}")
 print(f"  Token:  {TOKEN[:8]}...")
 print()
 
+def detect_supported_engines():
+    """Scan models directory and report which video engines are available."""
+    engines = ["ad15"]  # AnimateDiff/SD1.5 always available if checkpoint exists
+    diffusion_dir = os.path.join(COMFYUI_PATH, "models", "diffusion_models")
+    if os.path.isdir(diffusion_dir):
+        files = os.listdir(diffusion_dir)
+        for f in files:
+            fl = f.lower()
+            if "wan" in fl and fl.endswith(('.safetensors', '.ckpt', '.pt', '.gguf')):
+                if "wan22" not in engines:
+                    engines.append("wan22")
+            if "ltx" in fl and fl.endswith(('.safetensors', '.ckpt', '.pt', '.gguf')):
+                if "ltx" not in engines:
+                    engines.append("ltx")
+    print(f"  Supported engines: {engines}")
+    return engines
+
 # ── Startup (each step wrapped to prevent crash before main loop) ──
 try:
-    post("workerApi", {"action":"register","token":TOKEN,"name":NAME,"os_type": ("mac" if sys.platform == "darwin" else ("windows" if os.name == "nt" else "linux")),"gpu_model":"auto","vram_total":0})
+    post("workerApi", {"action":"register","token":TOKEN,"name":NAME,"os_type": ("mac" if sys.platform == "darwin" else ("windows" if os.name == "nt" else "linux")),"gpu_model":"auto","vram_total":0,"supported_engines":detect_supported_engines()})
     print("  Registered with server")
 except Exception as e:
     print(f"  Registration failed: {e}")
