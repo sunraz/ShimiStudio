@@ -870,6 +870,9 @@ def process_job(job, character, scene, lora_cfg=None):
             engine = (str(job.get("engine") or DEFAULT_ENGINE or "").lower())
             duration = job.get("duration", 6)
             seq = parse_shots(prompt)
+            if engine == "ltx":
+                print("  engine ltx -> wan22 (LTX models not installed yet)")
+                engine = "wan22"
             if engine == "wan22":
                 ready, why = wan22_ready()
                 if ready:
