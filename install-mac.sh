@@ -265,19 +265,27 @@ def start_comfyui():
 def queue_prompt(workflow):
     r = requests.post(f"{COMFYUI_URL}/prompt", json={"prompt": workflow, "client_id": "shimi"}, timeout=30)
     if r.status_code >= 400:
+        err_details = ""
         try:
             err_data = r.json()
             print("  ComfyUI error details:")
             if "error" in err_data:
+                err_details = json.dumps(err_data['error'])[:400]
                 print(f"    error: {json.dumps(err_data['error'], indent=2)[:600]}")
             if "node_errors" in err_data:
+                node_errs = []
                 for nid, nerr in err_data["node_errors"].items():
                     cls = nerr.get("class_type", "?")
                     errs = nerr.get("errors", nerr)
-                    print(f"    Node {nid} ({cls}): {json.dumps(errs, indent=2)[:400]}")
+                    ne_str = f"Node {nid} ({cls}): {json.dumps(errs)[:300]}"
+                    node_errs.append(ne_str)
+                    print(f"    {ne_str}")
+                if node_errs:
+                    err_details = (err_details + " | " if err_details else "") + " ; ".join(node_errs)
         except:
+            err_details = r.text[:400]
             print(f"  ComfyUI error: {r.text[:600]}")
-        r.raise_for_status()
+        raise RuntimeError(f"ComfyUI {r.status_code}: {err_details}")
     return r.json()["prompt_id"]
 
 def wait_for_result(prompt_id, jid):
@@ -506,7 +514,7 @@ def build_t2i_video(prompt, negative, lora=None, model=None, w=512, h=512, frame
         "5": {"class_type": "EmptyLatentImage", "inputs": {"width": w, "height": h, "batch_size": frames}},
         "6": {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": ["4", 1]}},
         "7": {"class_type": "CLIPTextEncode", "inputs": {"text": negative or "bad quality, blurry, distorted", "clip": ["4", 1]}},
-        "15": {"class_type": "ADE_AnimateDiffLoaderGen1", "inputs": {"model_name": mm, "beta_schedule": "sqrt_linear", "decode_latents": False}},
+        "15": {"class_type": "ADE_AnimateDiffLoaderGen1", "inputs": {"model_name": mm, "beta_schedule": "sqrt_linear"}},
         "17": {"class_type": "ADE_ApplyAnimateDiffModelSimple", "inputs": {"model": ["4", 0], "motion_models": ["15", 0]}},
         "3": {"class_type": "KSampler", "inputs": {"seed": random.randint(0, 2**32), "steps": 20, "cfg": 12, "sampler_name": "euler", "scheduler": "normal", "denoise": 1, "model": ["17", 0], "positive": ["6", 0], "negative": ["7", 0], "latent_image": ["5", 0]}},
         "8": {"class_type": "VAEDecode", "inputs": {"samples": ["3", 0], "vae": ["4", 2]}},
@@ -531,7 +539,7 @@ def build_t2i_video_ipadapter(prompt, negative, ref_image, model=None, w=512, h=
         "12": {"class_type": "CLIPVisionLoader", "inputs": {"clip_name": "CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors"}},
         "13": {"class_type": "CLIPVisionEncode", "inputs": {"image": ["10", 0], "clip_vision": ["12", 0]}},
         "14": {"class_type": "IPAdapterApply", "inputs": {"ipadapter": ["11", 0], "clip_vision": ["13", 0], "image": ["10", 0], "weight": 0.8, "model": ["4", 0]}},
-        "15": {"class_type": "ADE_AnimateDiffLoaderGen1", "inputs": {"model_name": mm, "beta_schedule": "sqrt_linear", "decode_latents": False}},
+        "15": {"class_type": "ADE_AnimateDiffLoaderGen1", "inputs": {"model_name": mm, "beta_schedule": "sqrt_linear"}},
         "17": {"class_type": "ADE_ApplyAnimateDiffModelSimple", "inputs": {"model": ["14", 0], "motion_models": ["15", 0]}},
         "3": {"class_type": "KSampler", "inputs": {"seed": random.randint(0, 2**32), "steps": 20, "cfg": 12, "sampler_name": "euler", "scheduler": "normal", "denoise": 1, "model": ["17", 0], "positive": ["6", 0], "negative": ["7", 0], "latent_image": ["5", 0]}},
         "8": {"class_type": "VAEDecode", "inputs": {"samples": ["3", 0], "vae": ["4", 2]}},
@@ -550,7 +558,7 @@ def build_img2vid(prompt, negative, source_image, lora=None, model=None, w=512, 
         "13": {"class_type": "LatentBatch", "inputs": {"samples1": ["11", 0], "samples2": ["12", 0]}},
         "6": {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": ["4", 1]}},
         "7": {"class_type": "CLIPTextEncode", "inputs": {"text": negative or "bad quality, blurry, distorted", "clip": ["4", 1]}},
-        "15": {"class_type": "ADE_AnimateDiffLoaderGen1", "inputs": {"model_name": mm, "beta_schedule": "sqrt_linear", "decode_latents": False}},
+        "15": {"class_type": "ADE_AnimateDiffLoaderGen1", "inputs": {"model_name": mm, "beta_schedule": "sqrt_linear"}},
         "17": {"class_type": "ADE_ApplyAnimateDiffModelSimple", "inputs": {"model": ["4", 0], "motion_models": ["15", 0]}},
         "3": {"class_type": "KSampler", "inputs": {"seed": random.randint(0, 2**32), "steps": 20, "cfg": 12, "sampler_name": "euler", "scheduler": "normal", "denoise": denoise, "model": ["17", 0], "positive": ["6", 0], "negative": ["7", 0], "latent_image": ["13", 0]}},
         "8": {"class_type": "VAEDecode", "inputs": {"samples": ["3", 0], "vae": ["4", 2]}},
