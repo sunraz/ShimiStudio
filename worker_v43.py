@@ -397,15 +397,14 @@ def build_t2i_video(prompt, negative, lora=None, model=None, w=512, h=512, frame
         "5": {"class_type": "EmptyLatentImage", "inputs": {"width": w, "height": h, "batch_size": frames}},
         "6": {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": ["4", 1]}},
         "7": {"class_type": "CLIPTextEncode", "inputs": {"text": negative or "bad quality, blurry, distorted", "clip": ["4", 1]}},
-        "15": {"class_type": "ADE_AnimateDiffLoaderGen1", "inputs": {"model_name": mm, "beta_schedule": "sqrt_linear"}},
-        "17": {"class_type": "ADE_ApplyAnimateDiffModelSimple", "inputs": {"model": ["4", 0], "motion_models": ["15", 0]}},
-        "3": {"class_type": "KSampler", "inputs": {"seed": random.randint(0, 2**32), "steps": 20, "cfg": 12, "sampler_name": "euler", "scheduler": "normal", "denoise": 1, "model": ["17", 0], "positive": ["6", 0], "negative": ["7", 0], "latent_image": ["5", 0]}},
+        "15": {"class_type": "ADE_AnimateDiffLoaderGen1", "inputs": {"model": ["4", 0], "model_name": mm, "beta_schedule": "sqrt_linear"}},
+        "3": {"class_type": "KSampler", "inputs": {"seed": random.randint(0, 2**32), "steps": 20, "cfg": 12, "sampler_name": "euler", "scheduler": "normal", "denoise": 1, "model": ["15", 0], "positive": ["6", 0], "negative": ["7", 0], "latent_image": ["5", 0]}},
         "8": {"class_type": "VAEDecode", "inputs": {"samples": ["3", 0], "vae": ["4", 2]}},
         "16": {"class_type": "VHS_VideoCombine", "inputs": {"images": ["8", 0], "frame_rate": frame_rate, "loop_count": 0, "filename_prefix": "shimi", "format": "video/h264-mp4", "pix_fmt": "yuv420p", "crf": 19, "save_metadata": False, "pingpong": False, "save_output": True}},
     }
     if lora:
         wf["10"] = {"class_type": "LoraLoader", "inputs": {"lora_name": lora, "strength_model": 0.8, "strength_clip": 0.8, "model": ["4", 0], "clip": ["4", 1]}}
-        wf["17"]["inputs"]["model"] = ["10", 0]
+        wf["15"]["inputs"]["model"] = ["10", 0]
         wf["6"]["inputs"]["clip"] = ["10", 1]
         wf["7"]["inputs"]["clip"] = ["10", 1]
     return wf
@@ -422,9 +421,8 @@ def build_t2i_video_ipadapter(prompt, negative, ref_image, model=None, w=512, h=
         "12": {"class_type": "CLIPVisionLoader", "inputs": {"clip_name": "CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors"}},
         "13": {"class_type": "CLIPVisionEncode", "inputs": {"image": ["10", 0], "clip_vision": ["12", 0]}},
         "14": {"class_type": "IPAdapterApply", "inputs": {"ipadapter": ["11", 0], "clip_vision": ["13", 0], "image": ["10", 0], "weight": 0.8, "model": ["4", 0]}},
-        "15": {"class_type": "ADE_AnimateDiffLoaderGen1", "inputs": {"model_name": mm, "beta_schedule": "sqrt_linear"}},
-        "17": {"class_type": "ADE_ApplyAnimateDiffModelSimple", "inputs": {"model": ["14", 0], "motion_models": ["15", 0]}},
-        "3": {"class_type": "KSampler", "inputs": {"seed": random.randint(0, 2**32), "steps": 20, "cfg": 12, "sampler_name": "euler", "scheduler": "normal", "denoise": 1, "model": ["17", 0], "positive": ["6", 0], "negative": ["7", 0], "latent_image": ["5", 0]}},
+        "15": {"class_type": "ADE_AnimateDiffLoaderGen1", "inputs": {"model": ["14", 0], "model_name": mm, "beta_schedule": "sqrt_linear"}},
+        "3": {"class_type": "KSampler", "inputs": {"seed": random.randint(0, 2**32), "steps": 20, "cfg": 12, "sampler_name": "euler", "scheduler": "normal", "denoise": 1, "model": ["15", 0], "positive": ["6", 0], "negative": ["7", 0], "latent_image": ["5", 0]}},
         "8": {"class_type": "VAEDecode", "inputs": {"samples": ["3", 0], "vae": ["4", 2]}},
         "16": {"class_type": "VHS_VideoCombine", "inputs": {"images": ["8", 0], "frame_rate": frame_rate, "loop_count": 0, "filename_prefix": "shimi", "format": "video/h264-mp4", "pix_fmt": "yuv420p", "crf": 19, "save_metadata": False, "pingpong": False, "save_output": True}},
     }
@@ -441,15 +439,14 @@ def build_img2vid(prompt, negative, source_image, lora=None, model=None, w=512, 
         "13": {"class_type": "LatentBatch", "inputs": {"samples1": ["11", 0], "samples2": ["12", 0]}},
         "6": {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": ["4", 1]}},
         "7": {"class_type": "CLIPTextEncode", "inputs": {"text": negative or "bad quality, blurry, distorted", "clip": ["4", 1]}},
-        "15": {"class_type": "ADE_AnimateDiffLoaderGen1", "inputs": {"model_name": mm, "beta_schedule": "sqrt_linear"}},
-        "17": {"class_type": "ADE_ApplyAnimateDiffModelSimple", "inputs": {"model": ["4", 0], "motion_models": ["15", 0]}},
-        "3": {"class_type": "KSampler", "inputs": {"seed": random.randint(0, 2**32), "steps": 20, "cfg": 12, "sampler_name": "euler", "scheduler": "normal", "denoise": denoise, "model": ["17", 0], "positive": ["6", 0], "negative": ["7", 0], "latent_image": ["13", 0]}},
+        "15": {"class_type": "ADE_AnimateDiffLoaderGen1", "inputs": {"model": ["4", 0], "model_name": mm, "beta_schedule": "sqrt_linear"}},
+        "3": {"class_type": "KSampler", "inputs": {"seed": random.randint(0, 2**32), "steps": 20, "cfg": 12, "sampler_name": "euler", "scheduler": "normal", "denoise": denoise, "model": ["15", 0], "positive": ["6", 0], "negative": ["7", 0], "latent_image": ["13", 0]}},
         "8": {"class_type": "VAEDecode", "inputs": {"samples": ["3", 0], "vae": ["4", 2]}},
         "16": {"class_type": "VHS_VideoCombine", "inputs": {"images": ["8", 0], "frame_rate": frame_rate, "loop_count": 0, "filename_prefix": "shimi", "format": "video/h264-mp4", "pix_fmt": "yuv420p", "crf": 19, "save_metadata": False, "pingpong": False, "save_output": True}},
     }
     if lora:
         wf["14"] = {"class_type": "LoraLoader", "inputs": {"lora_name": lora, "strength_model": 0.8, "strength_clip": 0.8, "model": ["4", 0], "clip": ["4", 1]}}
-        wf["17"]["inputs"]["model"] = ["14", 0]
+        wf["15"]["inputs"]["model"] = ["14", 0]
         wf["6"]["inputs"]["clip"] = ["14", 1]
         wf["7"]["inputs"]["clip"] = ["14", 1]
     return wf
