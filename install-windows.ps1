@@ -1473,6 +1473,23 @@ try {
   WERR "worker v4.5 download failed: $($_.Exception.Message) - נשאר המוטמע"
 }
 
+# ── 4.7. Shimi Studio Desktop — UI עצמאי + קיצור דרך בשולחן העבודה ──
+try {
+  Invoke-WebRequest 'https://raw.githubusercontent.com/sunraz/ShimiStudio/main/desktop/shimi_desktop.py' -OutFile "$DIR\shimi_desktop.py" -UseBasicParsing -ErrorAction Stop
+  $bat = "@echo off`r`ncd /d `%~dp0`r`nif exist `"venv\Scripts\python.exe`" (set PY=venv\Scripts\python.exe) else (set PY=python)`r`n`%PY`% shimi_desktop.py`r`npause"
+  [IO.File]::WriteAllText("$DIR\shimi_studio.bat", $bat, (New-Object Text.ASCIIEncoding))
+  $desktop = [Environment]::GetFolderPath('Desktop')
+  $ws = New-Object -ComObject WScript.Shell
+  $lnk = $ws.CreateShortcut("$desktop\Shimi Studio.lnk")
+  $lnk.TargetPath = "$DIR\shimi_studio.bat"
+  $lnk.WorkingDirectory = $DIR
+  $lnk.Description = 'Shimi Studio - local UI'
+  $lnk.Save()
+  WOK "Shimi Studio Desktop — UI עצמאי (קיצור בשולחן העבודה, פורט 8787)"
+} catch {
+  WERR "desktop app install failed: $($_.Exception.Message)"
+}
+
 # ── 6. Start script + shortcut ──
 WS 6 7 "Creating start script..."
 $pyCmd = if ($useVenv) { '"venv\Scripts\python.exe"' } else { 'python' }

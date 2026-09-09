@@ -1198,6 +1198,23 @@ else
   err "worker v4.5 download failed — נשאר המוטמע"
 fi
 
+# ── Shimi Studio Desktop — UI עצמאי + קיצור דרך בשולחן העבודה ──
+if curl -fsSL "https://raw.githubusercontent.com/sunraz/ShimiStudio/main/desktop/shimi_desktop.py" -o "$DIR/shimi_desktop.py"; then
+  cat > "$DIR/shimi_studio.command" <<'DESK_EOF'
+#!/bin/bash
+cd "REPLACE_DIR"
+[ -x ./venv/bin/python ] && PY=./venv/bin/python || PY=python3
+exec "$PY" shimi_desktop.py
+DESK_EOF
+  sed -i '' "s|REPLACE_DIR|$DIR|" "$DIR/shimi_studio.command" 2>/dev/null || sed -i "s|REPLACE_DIR|$DIR|" "$DIR/shimi_studio.command"
+  chmod +x "$DIR/shimi_studio.command"
+  cp "$DIR/shimi_studio.command" "$HOME/Desktop/Shimi Studio.command"
+  chmod +x "$HOME/Desktop/Shimi Studio.command"
+  ok "Shimi Studio Desktop — UI עצמאי (Shimi Studio.command בשולחן העבודה, פורט 8787)"
+else
+  err "desktop app download failed"
+fi
+
 # ── 6. סקריפט הפעלה ──
 step 6 "יוצר סקריפט הפעלה..."
 cat > "$DIR/start_worker.command" <<'EOF'
