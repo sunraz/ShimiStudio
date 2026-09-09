@@ -132,7 +132,7 @@ if [ "$has_wan" = false ] && [ "$has_ltx" = false ]; then
     dl "$DIFF/wan2.2-14b.safetensors" "https://huggingface.co/Wan-AI/Wan2.2-T2V-14B/resolve/main/diffusion_models/wan2.2-14b.safetensors" "Wan 2.2 14B (~14GB)"
     dl "$DIFF/ltx-video-2b.safetensors" "https://huggingface.co/Lightricks/LTX-Video/resolve/main/ltx-video-2b.safetensors" "LTX-Video (~2GB)"
   else
-    echo "  דילוג — ניתן להוריד מאוחר יותר ע"י הרצת ה-installer מחדש"
+    echo '  דילוג — ניתן להוריד מאוחר יותר ע"י הרצת ה-installer מחדש'
   fi
 elif [ "$has_wan" = true ] && [ "$has_ltx" = true ]; then
   ok "Wan 2.2 + LTX-Video כבר מותקנים"
@@ -1190,6 +1190,13 @@ cat > "$DIR/config.json" <<EOF
 {"server": "$SERVER", "token": "$TOKEN", "name": "$NAME", "apiBase": "$API_BASE", "comfyui_path": "$COMFYUI_DIR", "comfyui_url": "http://127.0.0.1:8188"}
 EOF
 ok "worker.py + config.json"
+
+# ── Worker v4.5 מהגיט — מקור קנוני (שרשור I2V + LoRA + גימור 1080x1600). נכשל → נשאר המוטמע ──
+if curl -fsSL "https://raw.githubusercontent.com/sunraz/ShimiStudio/main/worker_v45.py" -o "$DIR/worker.py" && grep -q "WanImageToVideo" "$DIR/worker.py"; then
+  ok "worker v4.5 (chaining + LoRA + finish) מהגיט"
+else
+  err "worker v4.5 download failed — נשאר המוטמע"
+fi
 
 # ── 6. סקריפט הפעלה ──
 step 6 "יוצר סקריפט הפעלה..."

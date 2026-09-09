@@ -1462,6 +1462,17 @@ if (Test-Path "$DIR\worker.py") {
   Read-Host "Press Enter to exit"; exit 1
 }
 
+# ── 4.6. Worker v4.5 מהגיט — מקור קנוני יחיד (שרשור I2V + LoRA + גימור 1080x1600). נכשל → נשאר המוטמע ──
+try {
+  Invoke-WebRequest 'https://raw.githubusercontent.com/sunraz/ShimiStudio/main/worker_v45.py' -OutFile "$DIR\worker.py" -UseBasicParsing -ErrorAction Stop
+  $w45 = Get-Content "$DIR\worker.py" -Raw -ErrorAction Stop
+  if ($w45 -match 'WanImageToVideo' -and $w45.Length -gt 20000) {
+    WOK 'worker v4.5 (chaining + LoRA + finish) מהגיט'
+  } else { throw 'incomplete download' }
+} catch {
+  WERR "worker v4.5 download failed: $($_.Exception.Message) - נשאר המוטמע"
+}
+
 # ── 6. Start script + shortcut ──
 WS 6 7 "Creating start script..."
 $pyCmd = if ($useVenv) { '"venv\Scripts\python.exe"' } else { 'python' }
