@@ -356,7 +356,7 @@ if (-not $hasWan -and -not $hasLtx) {
       WOK "LTX-Video הורד"
     } catch { WERR "LTX-Video download failed: $($_.Exception.Message)" }
   } else {
-    Write-Host "  דילוג — ניתן להוריד מאוחר יותר ע"י הרצת ה-installer מחדש" -ForegroundColor DarkGray
+    Write-Host '  דילוג — ניתן להוריד מאוחר יותר ע"י הרצת ה-installer מחדש' -ForegroundColor DarkGray
   }
 } elseif ($hasWan -and $hasLtx) {
   WOK "Wan 2.2 + LTX-Video כבר מותקנים"
