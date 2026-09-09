@@ -202,6 +202,32 @@ def fetch_available_nodes():
     except Exception as e:
         print(f"  /object_info failed: {e} — custom-node workflows disabled")
 
+def ensure_vhs():
+    """Auto-install VideoHelperSuite if not detected by ComfyUI."""
+    vhs_path = os.path.join(COMFYUI_PATH, "custom_nodes", "ComfyUI-VideoHelperSuite")
+    py_file = os.path.join(vhs_path, "VHS_video_encoding.py")
+    if not os.path.isfile(py_file):
+        print("  VideoHelperSuite not found — auto-installing...")
+        nodes_dir = os.path.dirname(vhs_path)
+        os.makedirs(nodes_dir, exist_ok=True)
+        try:
+            subprocess.run([VENV_PY, "-m", "pip", "install", "imageio", "imageio-ffmpeg", "-q"], timeout=120)
+            subprocess.run(["git", "clone", "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git", vhs_path], timeout=120, check=True)
+            print("  VideoHelperSuite cloned — restarting ComfyUI to load it")
+            try:
+                subprocess.run(["pkill", "-f", "main.py"], timeout=10)
+            except Exception:
+                pass
+            time.sleep(3)
+            if start_comfyui():
+                time.sleep(5)
+                fetch_available_nodes()
+                return 'VHS_VideoCombine' in AVAILABLE_NODES
+        except Exception as e:
+            print(f"  VHS auto-install failed: {e}")
+            return False
+    return True
+
 def start_comfyui():
     if comfyui_ready():
         print("  ComfyUI already running")
@@ -920,8 +946,9 @@ def process_job(job, character, scene, lora_cfg=None):
                 post("jobApi", {"action": "fail", "job_id": jid, "error": "AnimateDiff node not loaded (custom nodes disabled) — cannot generate video locally. Restart worker or use cloud mode."})
                 return
             if 'VHS_VideoCombine' not in AVAILABLE_NODES:
-                post("jobApi", {"action": "fail", "job_id": jid, "error": "VideoHelperSuite not installed — cannot encode video. Reinstall worker."})
-                return
+                if not ensure_vhs():
+                    post("jobApi", {"action": "fail", "job_id": jid, "error": "VideoHelperSuite not installed — cannot encode video. Reinstall worker."})
+                    return
             if not video_supported(model):
                 post("jobApi", {"action": "fail", "job_id": jid, "error": "AnimateDiff motion module not installed — cannot generate video locally. Reinstall worker or use cloud mode."})
                 return
