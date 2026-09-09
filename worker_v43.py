@@ -973,3 +973,4 @@ while True:
         download_pending_models()
     except Exception as e:
         print(f"  Error: {e}")
+    time.sleep(5)  # Poll interval — without this the loop spins infinitely and crashes
