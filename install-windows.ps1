@@ -18,7 +18,7 @@ Write-Host "  ShimiStudio Worker - Installer" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# ── 1. Python ──
+# -- 1. Python --
 WS 1 7 "Checking Python..."
 $pyExe = $null
 
@@ -63,13 +63,13 @@ if (-not $pyExe) {
 if (-not (Test-Path $pyExe)) { WERR "Python not found at $pyExe"; Read-Host "Press Enter to exit"; exit 1 }
 WOK "Python: $pyExe"
 
-# ── 2. Directory ──
+# -- 2. Directory --
 WS 2 7 "Creating directory..."
 if (-not (Test-Path $DIR)) { New-Item -ItemType Directory -Path $DIR -Force | Out-Null }
 Set-Location $DIR
 WOK $DIR
 
-# ── 3. ComfyUI ──
+# -- 3. ComfyUI --
 WS 3 7 "Checking ComfyUI..."
 $comfyuiDir = "$DIR\ComfyUI"
 $comfyuiFound = $false
@@ -108,7 +108,7 @@ if (-not $comfyuiFound) {
   if (Test-Path $zipPath) { Remove-Item $zipPath -Force -ErrorAction SilentlyContinue }
 }
 
-# Custom nodes (ZIP download — no git or GitHub auth needed)
+# Custom nodes (ZIP download - no git or GitHub auth needed)
 $nodesDir = "$comfyuiDir\custom_nodes"
 if (-not (Test-Path $nodesDir)) { New-Item -ItemType Directory -Path $nodesDir -Force | Out-Null }
 $customNodes = @(
@@ -123,7 +123,7 @@ foreach ($node in $customNodes) {
   if (Test-Path $nodePath) {
     $pyFiles = @(Get-ChildItem $nodePath -Filter *.py -File -ErrorAction SilentlyContinue)
     if ($pyFiles.Count -gt 0) { WOK "$($node[0]) exists"; $needInstall = $false }
-    else { WERR "$($node[0]) incomplete — re-downloading"; Remove-Item $nodePath -Recurse -Force -ErrorAction SilentlyContinue }
+    else { WERR "$($node[0]) incomplete - re-downloading"; Remove-Item $nodePath -Recurse -Force -ErrorAction SilentlyContinue }
   }
   if ($needInstall) {
     Write-Host "  Downloading $($node[0])..."
@@ -143,7 +143,7 @@ foreach ($node in $customNodes) {
   }
 }
 
-# ── 4. Venv + dependencies ──
+# -- 4. Venv + dependencies --
 WS 4 7 "Setting up Python environment..."
 $vp = $pyExe
 $useVenv = $false
@@ -179,20 +179,20 @@ try {
   $null = & $nvidiaSmi.Source --query-gpu=name --format=csv,noheader 2>&1
   if ($LASTEXITCODE -eq 0) { $hasNvidia = $true; WOK "NVIDIA GPU detected" }
 } catch {}
-if (-not $hasNvidia) { WERR "No NVIDIA GPU detected — will use CPU mode (slower)" }
+if (-not $hasNvidia) { WERR "No NVIDIA GPU detected - will use CPU mode (slower)" }
 
-# PyTorch — force reinstall to ensure CUDA version replaces any CPU-only torch
+# PyTorch - force reinstall to ensure CUDA version replaces any CPU-only torch
 if ($hasNvidia) {
   Write-Host "  Installing PyTorch with CUDA 12.1 (this may take several minutes, ~2.5GB)..."
   try {
     & $vp -m pip install --force-reinstall torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 --disable-pip-version-check 2>&1 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
-  } catch { Write-Host "    (pip dependency warnings — continuing)" -ForegroundColor DarkGray }
+  } catch { Write-Host "    (pip dependency warnings - continuing)" -ForegroundColor DarkGray }
   WOK "PyTorch CUDA installed"
 } else {
   Write-Host "  Installing PyTorch (CPU only)..."
   try {
     & $vp -m pip install --force-reinstall torch torchvision torchaudio --disable-pip-version-check 2>&1 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
-  } catch { Write-Host "    (pip dependency warnings — continuing)" -ForegroundColor DarkGray }
+  } catch { Write-Host "    (pip dependency warnings - continuing)" -ForegroundColor DarkGray }
   WOK "PyTorch CPU installed"
 }
 
@@ -203,7 +203,7 @@ if (Test-Path "$comfyuiDir\requirements.txt") {
   WOK "ComfyUI requirements installed"
 }
 
-# Custom node dependencies (critical — ComfyUI crashes on startup if these are missing)
+# Custom node dependencies (critical - ComfyUI crashes on startup if these are missing)
 Write-Host "  Installing custom node dependencies..."
 foreach ($node in $customNodes) {
   $nodePath = "$nodesDir\$($node[0])"
@@ -213,12 +213,12 @@ foreach ($node in $customNodes) {
 }
 WOK "Custom node dependencies installed"
 
-# Video-specific dependencies (not always in node requirements.txt — critical for AnimateDiff + VHS video output)
+# Video-specific dependencies (not always in node requirements.txt - critical for AnimateDiff + VHS video output)
 Write-Host "  Installing video generation dependencies (imageio-ffmpeg, einops, scipy, opencv)..."
 try { & $vp -m pip install imageio imageio-ffmpeg einops scipy opencv-python --quiet --disable-pip-version-check 2>&1 | Out-Null } catch {}
 WOK "Video dependencies installed"
 
-# ReActor dependencies (insightface + onnxruntime — not always in requirements.txt)
+# ReActor dependencies (insightface + onnxruntime - not always in requirements.txt)
 Write-Host "  Installing ReActor face-swap dependencies (insightface, onnxruntime)..."
 try { & $vp -m pip install insightface onnxruntime-gpu --quiet --disable-pip-version-check 2>&1 | Out-Null } catch {}
 try { & $vp -m pip install onnxruntime --quiet --disable-pip-version-check 2>&1 | Out-Null } catch {}
@@ -233,7 +233,7 @@ try {
   else { WERR "PyTorch CUDA not available - GPU acceleration may not work" }
 } catch { WERR "PyTorch verification failed" }
 
-# ── 4.1. Kohya_ss (sd-scripts) for real LoRA training ──
+# -- 4.1. Kohya_ss (sd-scripts) for real LoRA training --
 Write-Host "  Setting up Kohya_ss (sd-scripts) for LoRA training..."
 $sdScriptsDir = "$DIR\sd-scripts"
 if (-not (Test-Path "$sdScriptsDir\sdxl_train_network.py")) {
@@ -265,13 +265,13 @@ if (Test-Path "$sdScriptsDir\requirements.txt") {
   if (Test-Path "$sdScriptsDir\sdxl_train_network.py") {
     WOK "sd-scripts + training deps installed (real LoRA training enabled)"
   } else {
-    WERR "sd-scripts incomplete — training will fall back to IP-Adapter reference"
+    WERR "sd-scripts incomplete - training will fall back to IP-Adapter reference"
   }
 } else {
-  WERR "sd-scripts download failed — training will fall back to IP-Adapter reference"
+  WERR "sd-scripts download failed - training will fall back to IP-Adapter reference"
 }
 
-# ── 4.15. Checkpoints (user-selected) ──
+# -- 4.15. Checkpoints (user-selected) --
 $ckptDir = "$comfyuiDir\models\checkpoints"
 if (-not (Test-Path $ckptDir)) { New-Item -ItemType Directory -Path $ckptDir -Force | Out-Null }
 $downloadsDir = Join-Path $env:USERPROFILE "Downloads"
@@ -292,7 +292,7 @@ if (-not (Test-Path "$ckptDir\v1-5-pruned-emaonly.safetensors")) {
   }
 } else { WOK "Stable Diffusion 1.5 exists" }
 
-# ── 4.2. IP-Adapter models (fallback for character consistency without LoRA) ──
+# -- 4.2. IP-Adapter models (fallback for character consistency without LoRA) --
 Write-Host "  Checking IP-Adapter models..."
 $ipadapterDir = "$comfyuiDir\models\ipadapter"
 $clipVisionDir = "$comfyuiDir\models\clip_vision"
@@ -304,7 +304,7 @@ if (-not (Test-Path "$ipadapterDir\ip-adapter-plus_sd15.safetensors")) {
     Invoke-WebRequest "https://huggingface.co/h94/IP-Adapter/resolve/main/models/ip-adapter-plus_sd15.safetensors" -OutFile "$ipadapterDir\ip-adapter-plus_sd15.safetensors" -UseBasicParsing -ErrorAction Stop
     WOK "IP-Adapter Plus SD 1.5 model downloaded"
   } catch {
-    WERR "IP-Adapter SD 1.5 download failed — IP-Adapter fallback unavailable (LoRA training still works)"
+    WERR "IP-Adapter SD 1.5 download failed - IP-Adapter fallback unavailable (LoRA training still works)"
   }
 } else { WOK "IP-Adapter Plus SD 1.5 model exists" }
 if (-not (Test-Path "$clipVisionDir\CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors")) {
@@ -317,7 +317,7 @@ if (-not (Test-Path "$clipVisionDir\CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors"
   }
 } else { WOK "CLIP Vision model exists" }
 
-# ── 4.25. Motion modules (user-selected) ──
+# -- 4.25. Motion modules (user-selected) --
 $mmDir = "$comfyuiDir\models\animatediff_models"
 if (-not (Test-Path $mmDir)) { New-Item -ItemType Directory -Path $mmDir -Force | Out-Null }
 if (-not (Test-Path "$mmDir\mm_sd_v15_v2.ckpt")) {
@@ -328,43 +328,43 @@ if (-not (Test-Path "$mmDir\mm_sd_v15_v2.ckpt")) {
   } catch { WERR "AnimateDiff v2 download failed: $($_.Exception.Message)" }
 } else { WOK "AnimateDiff v2 exists" }
 
-# ── 4.3. Heavy video models (Wan 2.2 + LTX-Video) — optional, ~16GB ──
-WS 4.3 7 "Heavy video models (Wan 2.2 + LTX) — optional..."
+# -- 4.3. Heavy video models (Wan 2.2 + LTX-Video) - optional, ~16GB --
+WS 4.3 7 "Heavy video models (Wan 2.2 + LTX) - optional..."
 $diffusionDir = "$comfyuiDir\models\diffusion_models"
 if (-not (Test-Path $diffusionDir)) { New-Item -ItemType Directory -Path $diffusionDir -Force | Out-Null }
 $hasWan = Test-Path "$diffusionDir\wan2.2-14b.safetensors"
 $hasLtx = Test-Path "$diffusionDir\ltx-video-2b.safetensors"
 if (-not $hasWan -and -not $hasLtx) {
   Write-Host ""
-  Write-Host "  ╔══════════════════════════════════════════════════════╗" -ForegroundColor Yellow
-  Write-Host "  ║  מודלי וידאו כבדים (Wan 2.2 + LTX-Video)            ║" -ForegroundColor Yellow
-  Write-Host "  ║  נפח נדרש: ~16GB נוספים                           ║" -ForegroundColor Yellow
-  Write-Host "  ║  בלעדיהם — רק מנוע AnimateDiff (SD1.5) יעבוד     ║" -ForegroundColor Yellow
-  Write-Host "  ║  איתם — ה-worker יוכל לעבד גם Wan 2.2 ו-LTX      ║" -ForegroundColor Yellow
-  Write-Host "  ╚══════════════════════════════════════════════════════╝" -ForegroundColor Yellow
+  Write-Host "  +======================================================+" -ForegroundColor Yellow
+  Write-Host "  |  Heavy video models (Wan 2.2 + LTX-Video)          |" -ForegroundColor Yellow
+  Write-Host "  |  Required space: ~16GB extra                       |" -ForegroundColor Yellow
+  Write-Host "  |  Without them, only AnimateDiff (SD1.5) engine works |" -ForegroundColor Yellow
+  Write-Host "  |  With them, the worker can run Wan 2.2 and LTX     |" -ForegroundColor Yellow
+  Write-Host "  \======================================================/" -ForegroundColor Yellow
   Write-Host ""
-  $heavyChoice = Read-Host "  להוריד מודלים כבדים עכשיו? (y/N)"
+  $heavyChoice = Read-Host "  Download heavy models now? (y/N)"
   if ($heavyChoice -eq 'y' -or $heavyChoice -eq 'Y') {
-    Write-Host "  מוריד Wan 2.2 14B (~14GB)... זה ייקח דקות ארוכות"
+    Write-Host "  Downloading Wan 2.2 14B (~14GB)... this takes a long while"
     try {
       Invoke-WebRequest "https://huggingface.co/Wan-AI/Wan2.2-T2V-14B/resolve/main/diffusion_models/wan2.2-14b.safetensors" -OutFile "$diffusionDir\wan2.2-14b.safetensors" -UseBasicParsing -ErrorAction Stop
-      WOK "Wan 2.2 14B הורד"
-    } catch { WERR "Wan 2.2 download failed: $($_.Exception.Message) — ניתן להוריד ידנית later" }
-    Write-Host "  מוריד LTX-Video 2B (~2GB)..."
+      WOK "Wan 2.2 14B downloaded"
+    } catch { WERR "Wan 2.2 download failed: $($_.Exception.Message) - can be downloaded manually later" }
+    Write-Host "  Downloading LTX-Video 2B (~2GB)..."
     try {
       Invoke-WebRequest "https://huggingface.co/Lightricks/LTX-Video/resolve/main/ltx-video-2b.safetensors" -OutFile "$diffusionDir\ltx-video-2b.safetensors" -UseBasicParsing -ErrorAction Stop
-      WOK "LTX-Video הורד"
+      WOK "LTX-Video downloaded"
     } catch { WERR "LTX-Video download failed: $($_.Exception.Message)" }
   } else {
-    Write-Host '  דילוג — ניתן להוריד מאוחר יותר ע"י הרצת ה-installer מחדש' -ForegroundColor DarkGray
+    Write-Host '  Skipped - you can download later by re-running the installer' -ForegroundColor DarkGray
   }
 } elseif ($hasWan -and $hasLtx) {
-  WOK "Wan 2.2 + LTX-Video כבר מותקנים"
+  WOK "Wan 2.2 + LTX-Video already installed"
 } else {
-  if ($hasWan) { WOK "Wan 2.2 קיים" } else { WOK "LTX-Video קיים" }
+  if ($hasWan) { WOK "Wan 2.2 present" } else { WOK "LTX-Video present" }
 }
 
-# ── 4.5. Stop existing worker (aggressive) ──
+# -- 4.5. Stop existing worker (aggressive) --
 WS 5 7 "Stopping existing worker..."
 $stopped = 0
 try {
@@ -389,7 +389,7 @@ if (Test-Path "$DIR\worker.py") {
 }
 if ($stopped -gt 0) { WOK "Stopped $stopped old worker(s)" } else { WOK "No old workers running" }
 
-# ── 5. Worker files ──
+# -- 5. Worker files --
 WS 5 7 "Writing worker files..."
 @'
 import requests, time, json, os, sys, subprocess, random, base64, traceback, re, shutil
@@ -449,22 +449,22 @@ def fetch_available_nodes():
             AVAILABLE_NODES = set(r.json().keys())
             print(f"  ComfyUI nodes: {len(AVAILABLE_NODES)} | IPAdapter={('IPAdapterApply' in AVAILABLE_NODES)} ReActor={('ReActorFaceSwap' in AVAILABLE_NODES)} AnimateDiff={('ADE_AnimateDiffLoaderGen1' in AVAILABLE_NODES)} VHS={('VHS_VideoCombine' in AVAILABLE_NODES)}")
         else:
-            print(f"  /object_info HTTP {r.status_code} — custom-node workflows disabled")
+            print(f"  /object_info HTTP {r.status_code} - custom-node workflows disabled")
     except Exception as e:
-        print(f"  /object_info failed: {e} — custom-node workflows disabled")
+        print(f"  /object_info failed: {e} - custom-node workflows disabled")
 
 def ensure_vhs():
     """Auto-install VideoHelperSuite if not detected by ComfyUI."""
     vhs_path = os.path.join(COMFYUI_PATH, "custom_nodes", "ComfyUI-VideoHelperSuite")
     py_file = os.path.join(vhs_path, "VHS_video_encoding.py")
     if not os.path.isfile(py_file):
-        print("  VideoHelperSuite not found — auto-installing...")
+        print("  VideoHelperSuite not found - auto-installing...")
         nodes_dir = os.path.dirname(vhs_path)
         os.makedirs(nodes_dir, exist_ok=True)
         try:
             subprocess.run([VENV_PY, "-m", "pip", "install", "imageio", "imageio-ffmpeg", "-q"], timeout=120)
             subprocess.run(["git", "clone", "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git", vhs_path], timeout=120, check=True)
-            print("  VideoHelperSuite cloned — restarting ComfyUI to load it")
+            print("  VideoHelperSuite cloned - restarting ComfyUI to load it")
             # Kill existing ComfyUI and restart
             try:
                 subprocess.run(["taskkill", "/F", "/IM", "python.exe", "/FI", f"WINDOWTITLE eq *ComfyUI*"], timeout=10)
@@ -511,19 +511,19 @@ def start_comfyui():
         args = [VENV_PY, main_py, "--listen", "127.0.0.1", "--port", "8188"]
         if extra_args:
             args.extend(extra_args)
-        # Detect CUDA — if not available, run ComfyUI in CPU mode
+        # Detect CUDA - if not available, run ComfyUI in CPU mode
         try:
             import torch
             has_cuda = torch.cuda.is_available()
             has_mps = hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
             if not has_cuda and not has_mps:
-                print("  No GPU backend (CUDA/MPS) — starting ComfyUI in CPU mode (slower)")
+                print("  No GPU backend (CUDA/MPS) - starting ComfyUI in CPU mode (slower)")
                 args.append("--cpu")
             elif has_mps and not has_cuda:
-                print("  Apple Silicon MPS detected — ComfyUI will use Metal acceleration")
+                print("  Apple Silicon MPS detected - ComfyUI will use Metal acceleration")
                 args.append("--force-fp16")
         except ImportError:
-            print("  PyTorch not importable — starting ComfyUI in CPU mode")
+            print("  PyTorch not importable - starting ComfyUI in CPU mode")
             args.append("--cpu")
         log_file = open(log_path, "w", encoding="utf-8", errors="replace")
         proc = subprocess.Popen(args, cwd=COMFYUI_PATH, stdout=log_file, stderr=subprocess.STDOUT)
@@ -607,7 +607,7 @@ def wait_for_result(prompt_id, jid):
         try:
             st = post("jobApi", {"action": "get", "job_id": jid})
             if st.get("job", {}).get("status") == "cancelled":
-                print("  Job cancelled by user — interrupting ComfyUI")
+                print("  Job cancelled by user - interrupting ComfyUI")
                 try:
                     requests.post(f"{COMFYUI_URL}/interrupt", json={}, timeout=5)
                 except: pass
@@ -625,7 +625,7 @@ def wait_for_result(prompt_id, jid):
             try:
                 requests.post(f"{COMFYUI_URL}/interrupt", json={}, timeout=5)
             except: pass
-            raise TimeoutError("Render exceeded 45 minutes — aborted")
+            raise TimeoutError("Render exceeded 45 minutes - aborted")
         post("jobApi", {"action": "progress", "job_id": jid, "progress": min(80, 50 + elapsed * 5)})
         time.sleep(3)
 
@@ -809,7 +809,7 @@ def find_motion_module(model=None):
     if sdxl and sdxl_mm:
         return sdxl_mm[0]
     if sdxl and not sdxl_mm and sd15_mm:
-        print("  WARNING: No SDXL motion module found — using SD 1.5 module (may produce errors with SDXL)")
+        print("  WARNING: No SDXL motion module found - using SD 1.5 module (may produce errors with SDXL)")
         return sd15_mm[0]
     if not sdxl and sd15_mm:
         return sd15_mm[0]
@@ -918,7 +918,7 @@ def process_training_job(job):
 
     trained = False
     if os.path.exists(train_script):
-        print("  sd-scripts found — running Kohya_ss training (SD 1.5)...")
+        print("  sd-scripts found - running Kohya_ss training (SD 1.5)...")
         ckpt_path = os.path.join(COMFYUI_PATH, "models", "checkpoints", "v1-5-pruned-emaonly.safetensors")
         # Use accelerate CLI directly (python -m accelerate has no __main__)
         accelerate_exe = os.path.join(os.path.dirname(VENV_PY), "accelerate.exe")
@@ -1139,7 +1139,7 @@ def process_job(job, character, scene, lora_cfg=None):
     ref_image_name = None
     if not lora and face_image:
         if 'IPAdapterApply' not in AVAILABLE_NODES:
-            print("  IP-Adapter skipped — node not loaded (custom nodes disabled) — using style prompt only")
+            print("  IP-Adapter skipped - node not loaded (custom nodes disabled) - using style prompt only")
         else:
             ipadapter_model = os.path.join(COMFYUI_PATH, "models", "ipadapter", "ip-adapter-plus_sd15.safetensors")
             clip_vision_model = os.path.join(COMFYUI_PATH, "models", "clip_vision", "CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors")
@@ -1156,7 +1156,7 @@ def process_job(job, character, scene, lora_cfg=None):
                 missing = []
                 if not os.path.exists(ipadapter_model): missing.append("ip-adapter-plus_sd15.safetensors")
                 if not os.path.exists(clip_vision_model): missing.append("CLIP-ViT-H model")
-                print(f"  IP-Adapter skipped — missing: {', '.join(missing)} — using style prompt only")
+                print(f"  IP-Adapter skipped - missing: {', '.join(missing)} - using style prompt only")
     # Download source images if present (for img2img / img2vid)
     src_image_name = None
     if source_imgs:
@@ -1191,26 +1191,26 @@ def process_job(job, character, scene, lora_cfg=None):
             swap_mode = job.get("swap_mode", "face")
             if swap_mode == "body":
                 if 'IPAdapterApply' not in AVAILABLE_NODES:
-                    post("jobApi", {"action": "fail", "job_id": jid, "error": "IP-Adapter node not loaded (custom nodes disabled) — body swap unavailable. Restart worker."})
+                    post("jobApi", {"action": "fail", "job_id": jid, "error": "IP-Adapter node not loaded (custom nodes disabled) - body swap unavailable. Restart worker."})
                     return
                 wf = build_body_swap(src_image_name, face_name, lora, model)
                 print(f"  Body swap mode (IP-Adapter img2img)")
             else:
                 if 'ReActorFaceSwap' not in AVAILABLE_NODES:
-                    post("jobApi", {"action": "fail", "job_id": jid, "error": "ReActor node not loaded (custom nodes disabled) — face swap unavailable. Restart worker."})
+                    post("jobApi", {"action": "fail", "job_id": jid, "error": "ReActor node not loaded (custom nodes disabled) - face swap unavailable. Restart worker."})
                     return
                 wf = build_face_swap(src_image_name, face_name)
                 print(f"  Face swap mode (ReActor)")
         elif jtype == "video":
             if 'ADE_AnimateDiffLoaderGen1' not in AVAILABLE_NODES:
-                post("jobApi", {"action": "fail", "job_id": jid, "error": "AnimateDiff node not loaded (custom nodes disabled) — cannot generate video locally. Restart worker or use cloud mode."})
+                post("jobApi", {"action": "fail", "job_id": jid, "error": "AnimateDiff node not loaded (custom nodes disabled) - cannot generate video locally. Restart worker or use cloud mode."})
                 return
             if 'VHS_VideoCombine' not in AVAILABLE_NODES:
                 if not ensure_vhs():
-                    post("jobApi", {"action": "fail", "job_id": jid, "error": "VideoHelperSuite not installed — cannot encode video. Reinstall worker."})
+                    post("jobApi", {"action": "fail", "job_id": jid, "error": "VideoHelperSuite not installed - cannot encode video. Reinstall worker."})
                     return
             if not video_supported(model):
-                post("jobApi", {"action": "fail", "job_id": jid, "error": "AnimateDiff motion module not installed — cannot generate video locally. Reinstall worker or use cloud mode."})
+                post("jobApi", {"action": "fail", "job_id": jid, "error": "AnimateDiff motion module not installed - cannot generate video locally. Reinstall worker or use cloud mode."})
                 return
             sdxl = is_sdxl_model(model)
             # Screen format: vertical (9:16/2:3) or square
@@ -1388,7 +1388,7 @@ def detect_supported_engines():
     print(f"  Supported engines: {engines}")
     return engines
 
-# ── Startup (each step wrapped to prevent crash before main loop) ──
+# -- Startup (each step wrapped to prevent crash before main loop) --
 try:
     post("workerApi", {"action":"register","token":TOKEN,"name":NAME,"os_type": ("mac" if sys.platform == "darwin" else ("windows" if os.name == "nt" else "linux")),"gpu_model":"auto","vram_total":0,"supported_engines":detect_supported_engines()})
     print("  Registered with server")
@@ -1409,14 +1409,14 @@ try:
     if start_comfyui():
         fetch_available_nodes()
         if 'ADE_AnimateDiffLoaderGen1' not in AVAILABLE_NODES:
-            print("  ! AnimateDiff node not loaded — VIDEO GENERATION WILL FAIL. Reinstall worker or check ComfyUI-AnimateDiff-Evolved in custom_nodes/")
+            print("  ! AnimateDiff node not loaded - VIDEO GENERATION WILL FAIL. Reinstall worker or check ComfyUI-AnimateDiff-Evolved in custom_nodes/")
         if 'IPAdapterApply' not in AVAILABLE_NODES:
-            print("  ! IP-Adapter node not loaded — character reference will use style prompt only.")
+            print("  ! IP-Adapter node not loaded - character reference will use style prompt only.")
     else:
         print("  WARNING: ComfyUI not available - jobs will fail until ComfyUI is running")
 except Exception as e:
     print(f"  ComfyUI startup error: {e}")
-    print("  Worker continues without ComfyUI — jobs will fail until ComfyUI is running")
+    print("  Worker continues without ComfyUI - jobs will fail until ComfyUI is running")
 
 while True:
     try:
@@ -1462,18 +1462,18 @@ if (Test-Path "$DIR\worker.py") {
   Read-Host "Press Enter to exit"; exit 1
 }
 
-# ── 4.6. Worker v4.5 מהגיט — מקור קנוני יחיד (שרשור I2V + LoRA + גימור 1080x1600). נכשל → נשאר המוטמע ──
+# -- 4.6. Worker v4.5 from git - single canonical source (I2V chaining + LoRA + 1080x1600 finish). Fails -> embedded fallback --
 try {
   Invoke-WebRequest 'https://raw.githubusercontent.com/sunraz/ShimiStudio/main/worker_v45.py' -OutFile "$DIR\worker.py" -UseBasicParsing -ErrorAction Stop
   $w45 = Get-Content "$DIR\worker.py" -Raw -ErrorAction Stop
   if ($w45 -match 'WanImageToVideo' -and $w45.Length -gt 20000) {
-    WOK 'worker v4.5 (chaining + LoRA + finish) מהגיט'
+    WOK 'worker v4.5 (chaining + LoRA + finish) from git'
   } else { throw 'incomplete download' }
 } catch {
-  WERR "worker v4.5 download failed: $($_.Exception.Message) - נשאר המוטמע"
+  WERR "worker v4.5 download failed: $($_.Exception.Message) - keeping embedded version"
 }
 
-# ── 4.7. Shimi Studio Desktop — UI עצמאי + קיצור דרך בשולחן העבודה ──
+# -- 4.7. Shimi Studio Desktop - standalone UI + desktop shortcut --
 try {
   Invoke-WebRequest 'https://raw.githubusercontent.com/sunraz/ShimiStudio/main/desktop/shimi_desktop.py' -OutFile "$DIR\shimi_desktop.py" -UseBasicParsing -ErrorAction Stop
   $bat = "@echo off`r`ncd /d `%~dp0`r`nif exist `"venv\Scripts\python.exe`" (set PY=venv\Scripts\python.exe) else (set PY=python)`r`n`%PY`% shimi_desktop.py`r`npause"
@@ -1485,12 +1485,12 @@ try {
   $lnk.WorkingDirectory = $DIR
   $lnk.Description = 'Shimi Studio - local UI'
   $lnk.Save()
-  WOK "Shimi Studio Desktop — UI עצמאי (קיצור בשולחן העבודה, פורט 8787)"
+  WOK "Shimi Studio Desktop - standalone UI (desktop shortcut, port 8787)"
 } catch {
   WERR "desktop app install failed: $($_.Exception.Message)"
 }
 
-# ── 6. Start script + shortcut ──
+# -- 6. Start script + shortcut --
 WS 6 7 "Creating start script..."
 $pyCmd = if ($useVenv) { '"venv\Scripts\python.exe"' } else { 'python' }
 $startBat = @"
@@ -1515,7 +1515,7 @@ $lnk.Description = "ShimiStudio Worker"
 $lnk.Save()
 WOK "Desktop shortcut created"
 
-# ── 7. Start ──
+# -- 7. Start --
 WS 7 7 "Starting worker..."
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
