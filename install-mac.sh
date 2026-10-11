@@ -7,8 +7,8 @@
 # ============================================================
 set -e
 
-SERVER="https://base44-dispatcher-production.base44.workers.dev"
-API_BASE="https://base44-dispatcher-production.base44.workers.dev/api/apps"
+SERVER="https://shimi-studio.base44.app"   # תוקן 11/10 שימי פיתוח: ישירות לסטודיו (הדיספצ'ר היה דורש סוד שלא נשלח)
+API_BASE="https://shimi-studio.base44.app/api/apps/6a9206e9f29b8d9f70a77b47"   # תוקן 11/10: כולל מזהה אפליקציה
 NAME="Worker-Mac"
 DIR="$HOME/ShimiStudio"
 
