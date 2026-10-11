@@ -2,10 +2,10 @@
 $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$SERVER = "https://base44-dispatcher-production.base44.workers.dev"
-$TOKEN = ""
+$SERVER = "https://shimi-studio.base44.app"   # תוקן 11/10 שימי פיתוח: ישירות לסטודיו — הדיספצ'ר דורש סוד שהמתקין לא שלח (401)
+$TOKEN = [guid]::NewGuid().ToString('N').Substring(0, 24)   # תוקן 11/10: היה ריק — עכשיו נוצר מקומית ונרשם בעת הפעלה
 $NAME = "Worker-Windows"
-$API_BASE = "https://base44-dispatcher-production.base44.workers.dev/api/apps"
+$API_BASE = "https://shimi-studio.base44.app/api/apps/6a9206e9f29b8d9f70a77b47"   # תוקן 11/10: כולל מזהה אפליקציה — היה חסר
 $DIR = Join-Path $env:USERPROFILE "ShimiStudio"
 
 function WS($n,$t,$m){ Write-Host "[$n/$t] $m" -ForegroundColor Yellow }
