@@ -2,6 +2,7 @@
 # Proven dtype recipe from shimi-poker-v2c kernels: UMT5 bfloat16, VAE fp32, transformer fp16,
 # pre-encode prompt then free the text encoder (T4-safe).
 import os, json, sys, traceback, gc, time, subprocess
+subprocess.run(['pip', 'uninstall', '-y', '-q', 'torchao'])
 subprocess.run(['pip', 'install', '-q', '-U', 'diffusers>=0.41.0', 'transformers', 'accelerate', 'imageio', 'safetensors', 'ftfy'])
 
 import torch
