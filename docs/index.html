@@ -40,16 +40,6 @@ window.__log=[];window.__d=function(m){window.__log.push(m);var e=document.getEl
 window.onerror=function(msg,src,line,col){window.__d("JS ERR: "+msg+" @"+line+":"+col)};
 window.addEventListener("unhandledrejection",function(e){window.__d("PROMISE ERR: "+(e.reason&&e.reason.message||e.reason))});
 
-/* === שמירת סקציות פרומפט (12/10) === */
-var SAVE_IDS=["lock","action","prompt","set","gpuPrompt"];
-function saveField(id,quiet){try{localStorage.setItem("polliSave_"+id,$(id).value);
- if(!quiet){var b=document.querySelector('.saveBtn[data-f="'+id+'"]');if(b){var t=b.textContent;b.textContent="נשמר ✓";setTimeout(function(){b.textContent=t},1200)}}}catch(e){}}
-SAVE_IDS.forEach(function(id){var el=$(id);if(!el)return;
- try{var sv=localStorage.getItem("polliSave_"+id);if(sv!==null&&sv!=="")el.value=sv;}catch(e){}
- var tm=null;el.addEventListener("input",function(){clearTimeout(tm);tm=setTimeout(function(){saveField(id,true)},800);});});
-document.querySelectorAll(".saveBtn").forEach(function(b){b.addEventListener("click",function(){saveField(b.getAttribute("data-f"))});});
-try{$("full").textContent="פרומפט מלא: "+compose()}catch(e){}
-
 </script>
 
 <header><h1>Pollinations</h1><span class="pill" id="auth">מחובר אוטומטית (sunraz2)</span><span class="pill" id="bal">יתרה: נטענת…</span></header>
@@ -276,4 +266,16 @@ $("gpuGo").onclick=function(){
  }).catch(function(e){$("gpuStat").textContent="שגיאת חיבור: "+e;$("gpuGo").disabled=false});
 };
 try{var saved=localStorage.getItem("gpuId");if(saved)gpuWatch(saved)}catch(e){}
+
+/* === שמירת סקציות פרומפט (12/10) === */
+var SAVE_IDS=["lock","action","prompt","set","gpuPrompt"];
+function saveField(id,quiet){try{localStorage.setItem("polliSave_"+id,$(id).value);
+ if(!quiet){var b=document.querySelector('.saveBtn[data-f="'+id+'"]');if(b){var t=b.textContent;b.textContent="נשמר ✓";setTimeout(function(){b.textContent=t},1200)}}}catch(e){}}
+SAVE_IDS.forEach(function(id){var el=$(id);if(!el)return;
+ try{var sv=localStorage.getItem("polliSave_"+id);if(sv!==null&&sv!=="")el.value=sv;}catch(e){}
+ var tm=null;el.addEventListener("input",function(){clearTimeout(tm);tm=setTimeout(function(){saveField(id,true)},800);});});
+document.querySelectorAll(".saveBtn").forEach(function(b){b.addEventListener("click",function(){saveField(b.getAttribute("data-f"))});});
+try{$("full").textContent="פרומפט מלא: "+compose()}catch(e){}
+
+
 </script></body></html>
