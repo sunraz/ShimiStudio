@@ -55,7 +55,7 @@ window.addEventListener("unhandledrejection",function(e){window.__d("PROMISE ERR
  <div id="gpuLog" class="note" style="white-space:pre-wrap"></div>
  <div id="gpuRes"></div>
 </div>
-<p class="note">הפרומפט נבנה אוטומטית מ-LOCK + ACTION + סצנה + SET. קגל רץ ברקע ואפשר להישאר בדף. קולאב לא ניתן להפעלה אוטומטית (ראה למטה).</p>
+<p class="note">הפרומפט נבנה אוטומטית מ-LOCK + ACTION + סצנה + SET. אם מולא URL בשדה "תמונת רפרנס" הווידאו ייווצר ממנה כתמונת עוגן (שומר זהות ומבנה גוף). קגל רץ ברקע ואפשר להישאר בדף. קולאב לא ניתן להפעלה אוטומטית (ראה למטה).</p>
 <button class="sec" id="openBoth">פתח קולאב + קגל ידנית</button>
 <a class="act" id="openColab" target="_blank" rel="noopener" href="https://colab.research.google.com/github/sunraz/ShimiStudio/blob/main/colab/shimi_colab_launcher.ipynb">קולאב בלבד</a>
 <a class="act" id="openKaggle" target="_blank" rel="noopener" href="https://www.kaggle.com/code/bigshimi358/shimi-dev-physics">קגל בלבד</a>
@@ -252,7 +252,7 @@ $("gpuGo").onclick=function(){
  var p=compose();
  if(p.length<10){$("gpuBox").style.display="block";$("gpuStat").textContent="כתוב קודם פעולה או סצנה";return}
  $("gpuGo").disabled=true;$("gpuBox").style.display="block";$("gpuRes").innerHTML="";$("gpuStat").textContent="שולח בקשה…";$("gpuBar").style.width="4%";
- gpuCall({action:"launch",prompt:p,action_text:$("action").value.trim(),seed:+$("seed").value}).then(function(j){
+ gpuCall({action:"launch",prompt:p,action_text:$("action").value.trim(),seed:+$("seed").value,image:$("ref").value.trim()||undefined}).then(function(j){
   if(j._http===409&&j.active_id){$("gpuLog").textContent="כבר רצה עבודה, עוקב אחריה.";gpuWatch(j.active_id);return}
   if(!j.id){$("gpuStat").textContent="שגיאה: "+(j.error||"לא ידוע");$("gpuGo").disabled=false;return}
   gpuWatch(j.id);
