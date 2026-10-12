@@ -48,7 +48,15 @@ window.addEventListener("unhandledrejection",function(e){window.__d("PROMISE ERR
 <div class="row">
 <div><label>פרומפט (יועתק אוטומטית ללוח)</label><textarea id="gpuPrompt" dir="ltr" placeholder="הדבק כאן את הפרומפט לוידאו, 81 פריימים"></textarea></div>
 </div>
-<button id="openBoth">פתח קולאב + קגל</button>
+<button id="gpuGo" style="background:#2e9e5b;font-size:17px;padding:12px 18px">⚡ הפעל GPU בקגל (אוטומטי)</button>
+<div id="gpuBox" style="display:none;margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:10px">
+ <div id="gpuStat" style="font-weight:700"></div>
+ <div style="height:8px;background:#0e1220;border-radius:6px;margin:8px 0;overflow:hidden"><div id="gpuBar" style="height:8px;width:0;background:#7c5cff;transition:width .6s"></div></div>
+ <div id="gpuLog" class="note" style="white-space:pre-wrap"></div>
+ <div id="gpuRes"></div>
+</div>
+<p class="note">הפרומפט נבנה אוטומטית מ-LOCK + ACTION + סצנה + SET. קגל רץ ברקע ואפשר להישאר בדף. קולאב לא ניתן להפעלה אוטומטית (ראה למטה).</p>
+<button class="sec" id="openBoth">פתח קולאב + קגל ידנית</button>
 <a class="act" id="openColab" target="_blank" rel="noopener" href="https://colab.research.google.com/github/sunraz/ShimiStudio/blob/main/colab/shimi_colab_launcher.ipynb">קולאב בלבד</a>
 <a class="act" id="openKaggle" target="_blank" rel="noopener" href="https://www.kaggle.com/code/bigshimi358/shimi-dev-physics">קגל בלבד</a>
 <ol class="note" style="line-height:1.9"><li>קולאב: Runtime ← Run all, הדבק את הפרומפט בתא 2.</li><li>קגל: Accelerator ← GPU, Internet ← On, Save &amp; Run All.</li><li>אורך נעול: 81 פריימים (5.06 שניות).</li></ol>
@@ -67,7 +75,8 @@ window.addEventListener("unhandledrejection",function(e){window.__d("PROMISE ERR
 <textarea id="lock" dir="ltr" style="min-height:60px">pale goth woman, pale porcelain skin with freckles, sharp black winged eyeliner, dark plum lipstick, long straight jet-black hair with blunt bangs, very large heavy natural bust, narrow waist, flat stomach, wide hips, soft thick thighs.</textarea>
 <label>אווירה (SET) — מצורפת אוטומטית אחרי הפרומפט</label>
 <textarea id="set" dir="ltr" style="min-height:60px">Underground poker room, green felt poker table, warm brass lamp light. Photorealistic, cinematic film grain, realistic skin texture.</textarea>
-<label>פרומפט (הסצנה בלבד)</label><textarea id="prompt" dir="ltr"></textarea>
+<label>פעולה (ACTION) — מה הדמות עושה, מצורפת אוטומטית אחרי הנעילה</label><textarea id="action" dir="ltr" style="min-height:60px" placeholder="e.g. She slowly bends forward and presses her hand into her thigh, flesh compresses then springs back"></textarea>
+<label>סצנה (פרומפט חופשי, אופציונלי)</label><textarea id="prompt" dir="ltr"></textarea>
 <pre id="full" style="min-height:34px"></pre>
 
 <label>תמונת רפרנס (מהמכשיר או URL)</label>
@@ -137,12 +146,12 @@ function fill(){
  $("vidWarn").style.display=isVid?"block":"none";
 }
 kind.onchange=fill;kind.addEventListener("change",fill);fill();
-function compose(){const l=$("lock").value.trim(),st=$("set").value.trim(),p=$("prompt").value.trim();return (l?l+" ":"")+p+(st?" "+st:"")}
+function compose(){var g=function(i){return $(i).value.trim()};return [g("lock"),g("action"),g("prompt"),g("set")].filter(Boolean).join(" ")}
 function build(){const p=compose().replace(/"/g,'\\"'),m=model.value,s=$("seed").value,d=$("dur").value,r=$("ref").value.trim();
  if(kind.value==="image")return `polli gen image "${p}" --model ${m} --width ${$("w").value} --height ${("h",$("h").value)} --seed ${s}`+(r?` --image ${r}`:"")+` --output out.png`;
  return `polli gen video "${p}" --model ${m} --duration ${d}`+(r?` --image ${r}`:"")+` --output out.mp4`}
 $("cmdOnly").onclick=()=>{$("cmd").textContent=build()};
-["lock","set","prompt"].forEach(id=>$(id).addEventListener("input",()=>{$("full").textContent="פרומפט מלא: "+compose()}));
+["lock","action","set","prompt"].forEach(id=>$(id).addEventListener("input",()=>{$("full").textContent="פרומפט מלא: "+compose()}));
 
 /* ---- reference upload from device ---- */
 $("upBtn").onclick=()=>$("file").click();
@@ -212,4 +221,39 @@ document.addEventListener("click",e=>{const t=e.target;
  if(t.tagName==="IMG"&&t.classList.contains("zoom")){$("lbbody").innerHTML=`<img src="${t.src}">`;$("lb").style.display="flex"}});
 fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"status"})})
  .then(r=>r.json()).then(j=>{$("bal").textContent="יתרה: "+(j.balance??"—");$("auth").textContent=j.authenticated?"מחובר אוטומטית (sunraz2)":"בלי מפתח"}).catch(e=>{$("bal").textContent="יתרה: שגיאת חיבור";window.__d("status fail: "+e)});
+
+/* ---- GPU one-click (Kaggle via backend queue) ---- */
+var GPUQ="https://base44.app/api/apps/6a901f55a4d9a9b76a095a77/functions/gpuQueue";
+var gpuTimer=null,gpuId=null;
+function gpuCall(b){return fetch(GPUQ,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}).then(function(r){return r.json().then(function(j){j._http=r.status;return j})})}
+var STAGES={queued:[8,"בתור, ממתין לשימי פיתוח"],launching:[20,"מעלה קרנל לקגל"],running:[55,"GPU רץ ביצירת הוידאו (כ-17 דקות)"],complete:[100,"הסתיים"],failed:[100,"נכשל"]};
+function gpuRender(j){
+ var st=STAGES[j.status]||[5,j.status];
+ $("gpuBox").style.display="block";
+ $("gpuStat").textContent=st[1]+(j.kaggle_status?"  ("+j.kaggle_status+")":"");
+ $("gpuBar").style.width=st[0]+"%";
+ $("gpuBar").style.background=j.status==="failed"?"#c0392b":(j.status==="complete"?"#2e9e5b":"#7c5cff");
+ $("gpuLog").textContent=(j.log||"")+(j.error?"\nשגיאה: "+j.error:"");
+ if(j.status==="complete"&&j.output_url){$("gpuRes").innerHTML='<video src="'+j.output_url+'" controls playsinline style="width:100%;max-width:360px;margin-top:8px;border-radius:10px"></video><div><a class="act" href="'+j.output_url+'" target="_blank" rel="noopener">פתח בגודל מלא</a><a class="act" href="'+j.output_url+'" download>שמור</a></div>'}
+}
+function gpuPoll(){
+ if(!gpuId)return;
+ gpuCall({action:"state",id:gpuId}).then(function(j){
+  if(j.error&&!j.status){$("gpuLog").textContent="שגיאת סטטוס: "+j.error;return}
+  gpuRender(j);
+  if(j.status==="complete"||j.status==="failed"){clearInterval(gpuTimer);gpuTimer=null;$("gpuGo").disabled=false;try{localStorage.removeItem("gpuId")}catch(e){}}
+ }).catch(function(e){window.__d&&window.__d("gpu poll: "+e)})
+}
+function gpuWatch(id){gpuId=id;try{localStorage.setItem("gpuId",id)}catch(e){};$("gpuGo").disabled=true;if(gpuTimer)clearInterval(gpuTimer);gpuPoll();gpuTimer=setInterval(gpuPoll,8000)}
+$("gpuGo").onclick=function(){
+ var p=compose();
+ if(p.length<10){$("gpuBox").style.display="block";$("gpuStat").textContent="כתוב קודם פעולה או סצנה";return}
+ $("gpuGo").disabled=true;$("gpuBox").style.display="block";$("gpuRes").innerHTML="";$("gpuStat").textContent="שולח בקשה…";$("gpuBar").style.width="4%";
+ gpuCall({action:"launch",prompt:p,action_text:$("action").value.trim(),seed:+$("seed").value}).then(function(j){
+  if(j._http===409&&j.active_id){$("gpuLog").textContent="כבר רצה עבודה, עוקב אחריה.";gpuWatch(j.active_id);return}
+  if(!j.id){$("gpuStat").textContent="שגיאה: "+(j.error||"לא ידוע");$("gpuGo").disabled=false;return}
+  gpuWatch(j.id);
+ }).catch(function(e){$("gpuStat").textContent="שגיאת חיבור: "+e;$("gpuGo").disabled=false});
+};
+try{var saved=localStorage.getItem("gpuId");if(saved)gpuWatch(saved)}catch(e){}
 </script></body></html>
