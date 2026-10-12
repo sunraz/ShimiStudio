@@ -42,7 +42,7 @@ window.addEventListener("unhandledrejection",function(e){window.__d("PROMISE ERR
 
 </script>
 
-<header><h1>Pollinations</h1><span class="pill" id="auth">מחובר אוטומטית (sunraz2)</span><span class="pill" id="bal">יתרה: נטענת…</span></header>
+<header><h1>Pollinations</h1><span class="pill" id="auth">מחובר אוטומטית (sunraz2)</span><span class="pill" id="bal">יתרה: נטענת…</span><span class="pill" id="guestStat">אורח: לא נבדק</span><button id="guestBtn" style="background:#2b5d3b;color:#fff;border:1px solid #3d8a52;border-radius:10px;padding:6px 14px;font-size:13px;cursor:pointer">🔄 חידוש התארחות</button></header>
 <main>
 
 <div class="card" id="gpuCard"><h2>מחברות GPU (קולאב + קגל)</h2>
@@ -67,13 +67,13 @@ window.addEventListener("unhandledrejection",function(e){window.__d("PROMISE ERR
 <div class="card"><h2>יצירה</h2>
 <div class="row">
 <div><label>סוג</label><select id="kind"><option value="image">תמונה (עובד, חינם)</option><option value="video">וידאו (דורש יתרה בתשלום)</option></select></div>
-<div><label>מודל</label><select id="model"><option value="flux">Flux Schnell (מהיר, ברירת מחדל)</option><option value="zimage">Z-Image Turbo (מהיר וזול)</option><option value="klein">Flux Klein 4B</option><option value="kontext">Flux Kontext (עריכה עם רפרנס)</option><option value="dreamshaper">DreamShaper 8</option><option value="gptimage">GPT Image Mini</option><option value="gpt-image-1.5">GPT Image 1.5</option><option value="microsoft/mai-image-2.6-flash">MAI Image Flash</option><option value="community/MarcosFRG/sdxl-lightning">SDXL Lightning</option><option value="community/vendouple/lucid-origin">Lucid Origin</option></select></div>
+<div><label>מודל</label><select id="model"><option value="flux">Flux Schnell (מהיר, ברירת מחדל)</option><option value="zimage">Z-Image Turbo (מהיר וזול)</option><option value="klein">Flux Klein 4B</option><option value="kontext">Flux Kontext (עריכה עם רפרנס)</option><option value="dreamshaper">DreamShaper 8</option><option value="gptimage">GPT Image Mini</option><option value="gpt-image-1.5">GPT Image 1.5</option><option value="microsoft/mai-image-2.6-flash">MAI Image Flash</option><option value="community/MarcosFRG/sdxl-lightning">SDXL Lightning</option><option value="community/vendouple/lucid-origin">Lucid Origin</option></select><div class="note" style="margin-top:4px">בתמונות (מצב אורח, חינם) המודל הוא Sana — הבחירה כאן משפיעה רק על וידאו.</div></div>
 <div><label>רוחב</label><input id="w" value="832"></div>
 <div><label>גובה</label><input id="h" value="480"></div>
 <div><label>סיד</label><input id="seed" value="4242"></div>
 <div id="durWrap" style="display:none"><label>משך וידאו (שניות)</label><input id="dur" value="5"></div>
 </div>
-<p id="vidWarn" class="note" style="display:none;color:#ffb347">וידאו בפוליניישנז עולה פולן בתשלום, ויתרת התשלום כרגע 0 (היתרה שמוצגת למעלה חינמית ועובדת לתמונות בלבד). לוידאו חינמי השתמש בכפתורי קולאב/קגל.</p>
+<p id="vidWarn" class="note" style="color:#7fd492">תמונות נוצרות במצב אורח — חינם לגמרי, אף פעם לא מהיתרה שלך. וידאו בלבד עולה פולן מהיתרה. לוידאו חינמי השתמש בכפתורי קולאב/קגל.</p>
 <label>נעילת דמות (LOCK) — מצורפת אוטומטית לפני הפרומפט</label>
 <textarea id="lock" dir="ltr" style="min-height:60px">pale goth woman, pale porcelain skin with freckles, sharp black winged eyeliner, dark plum lipstick, long straight jet-black hair with blunt bangs, very large heavy natural bust, narrow waist, flat stomach, wide hips, soft thick thighs.</textarea>
 <button class="saveBtn" data-f="lock">💾 שמור LOCK</button>
@@ -173,26 +173,56 @@ $("file").onchange=()=>{const f=$("file").files[0];if(!f)return;
  rd.readAsDataURL(f);};
 $("refClear").onclick=()=>{$("ref").value="";$("file").value="";$("refBox").style.display="none"};
 
-/* ---- generate (all through proxy, auto-saved) ---- */
-$("go").onclick=async()=>{const b=$("go");b.disabled=true;const o=$("out");o.textContent="יוצר… (יכול לקחת עד דקה)";
+/* ---- generate: images = free guest tier (browser-direct first, proxy fallback). video = key via proxy ---- */
+function guestDirectUrl(prompt,w,hh,seed){const p=new URLSearchParams({nologo:"true"});if(w)p.set("width",String(w));if(hh)p.set("height",String(hh));if(seed)p.set("seed",String(seed));return "https://image.pollinations.ai/prompt/"+encodeURIComponent(prompt)+"?"+p}
+function blobToB64(blob){return new Promise((res,rej)=>{const rd=new FileReader();rd.onload=()=>res(rd.result.split(",")[1]);rd.onerror=rej;rd.readAsDataURL(blob)})}
+function showResult(url,isVideo){const o=$("out");
+ o.innerHTML=(isVideo?'<video src="'+url+'" controls autoplay loop></video>':'<img class="zoom" src="'+url+'">')
+  +'<div><a class="act" href="'+url+'" target="_blank" rel="noopener">פתח בגודל מלא</a><a class="act" href="'+url+'" download>שמור</a></div>'
+  +'<div class="note" style="margin-top:6px">✓ נשמר אוטומטית בהיסטוריה</div><div id="blkWarn"></div>';
+ loadHist();
+ if(!isVideo){var im=o.querySelector("img");if(im){var chk=function(){try{var c=document.createElement("canvas");c.width=32;c.height=32;var x=c.getContext("2d");x.drawImage(im,0,0,32,32);var d=x.getImageData(0,0,32,32).data,mx=0;for(var i=0;i<d.length;i+=4){mx=Math.max(mx,d[i],d[i+1],d[i+2])}
+   if(mx<6)document.getElementById("blkWarn").innerHTML='<div class="note" style="color:#ff8a8a;margin-top:6px">⚠ התמונה שחורה לגמרי: המסנן של המודל חסם את הפרומפט. נסה ניסוח אחר.</div>'}catch(e){}};
+   if(im.complete&&im.naturalWidth>0)chk();else im.onload=chk}}}
+async function persistGuest(blobUrl,prompt,w,hh,seed){
  try{
-  const body={action:"generate",kind:kind.value,model:model.value,prompt:compose(),
-   width:+$("w").value,height:+$("h").value,seed:+$("seed").value,
-   image:$("ref").value.trim()||undefined};
-  if(kind.value==="video"){body.duration=+$("dur").value;delete body.width;delete body.height}
-  const r=await fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-  const j=await r.json();
-  if(j.url){
-   o.innerHTML=(kind.value==="image"
-    ?`<img class="zoom" src="${j.url}">`
-    :`<video src="${j.url}" controls autoplay loop></video>`)
-    +`<div><a class="act" href="${j.url}" target="_blank" rel="noopener">פתח בגודל מלא</a><a class="act" href="${j.url}" download>שמור</a></div>`
-    +`<div class="note" style="margin-top:6px">✓ נשמר אוטומטית בהיסטוריה</div><div id="blkWarn"></div>`;
-   loadHist();
-   if(kind.value==="image"){var im=o.querySelector("img");if(im){im.crossOrigin="anonymous";var chk=function(){try{var c=document.createElement("canvas");c.width=32;c.height=32;var x=c.getContext("2d");x.drawImage(im,0,0,32,32);var d=x.getImageData(0,0,32,32).data,mx=0;for(var i=0;i<d.length;i+=4){mx=Math.max(mx,d[i],d[i+1],d[i+2])}
-     if(mx<6)document.getElementById("blkWarn").innerHTML='<div class="note" style="color:#ff8a8a;margin-top:6px">⚠ התמונה שחורה לגמרי: המסנן של המודל חסם את הפרומפט (מודלים כמו SDXL מחזירים שחור במקום שגיאה). נסה מודל אחר, או ניסוח אחר.</div>'}catch(e){}};
-     if(im.complete)chk();else im.onload=chk;im.src=im.src}}
-  }else o.textContent="שגיאה: "+(j.error||JSON.stringify(j));
+  const bl=await (await fetch(blobUrl)).blob();const b64=await blobToB64(bl);
+  const up=await (await fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"upload",data_base64:b64,mime:bl.type||"image/jpeg"})})).json();
+  const stable=up.url||blobUrl;
+  await fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"save_result",kind:"image",url:stable,prompt:prompt,parameters:{tier:"guest",model:"sana",seed:seed,width:w,height:hh}})});
+  const o=$("out");const a=o.querySelectorAll("a.act");if(up.url&&a.length){a[0].href=up.url;a[1].href=up.url}
+ }catch(e){try{await fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"save_result",kind:"image",url:blobUrl,prompt:prompt,parameters:{tier:"guest",model:"sana"}})})}catch(e2){}}
+}
+$("go").onclick=async()=>{const b=$("go");b.disabled=true;const o=$("out");const P=compose();
+ try{
+  if(kind.value==="image"&&!$("ref").value.trim()){
+   // מסלול אורח חינם ישירות מהדפדפן (חלון האורח של המכשיר שלך)
+   o.textContent="יוצר כאורח (חינם)…";
+   const gUrl=guestDirectUrl(P,+$("w").value,+$("h").value,+$("seed").value);
+   let ok=false;
+   try{
+    const r=await fetch(gUrl);
+    if(r.ok&&(r.headers.get("content-type")||"").includes("image")){
+      const blob=await r.blob();const u=URL.createObjectURL(blob);ok=true;
+      showResult(u,false);persistGuest(u,P,+$("w").value,+$("h").value,+$("seed").value);
+      const st=$("guestStat");st.textContent="אורח: פעיל ✓";st.style.color="#7fd492";
+    }
+   }catch(e){}
+   if(ok){b.disabled=false;return}
+   // נפילה: אורח דרך השרת
+   o.textContent="אורח במכשיר מוגבל, מנסה דרך השרת…";
+   const j=await (await fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"generate",kind:"image",prompt:P,width:+$("w").value,height:+$("h").value,seed:+$("seed").value})})).json();
+   if(j.url){showResult(j.url,false);b.disabled=false;return}
+   o.textContent="שגיאה: "+(j.error||"אורח מוגבל גם בשרת. לחץ על חידוש התארחות ונסה שוב בעוד דקה. היתרה שלך לא נגעה.");
+  }else{
+   // וידאו או img2img — דרך הפרוקסי
+   o.textContent="יוצר… (יכול לקחת עד דקה)";
+   const body={action:"generate",kind:kind.value,model:model.value,prompt:P,width:+$("w").value,height:+$("h").value,seed:+$("seed").value,image:$("ref").value.trim()||undefined};
+   if(kind.value==="video"){body.duration=+$("dur").value;delete body.width;delete body.height}
+   const j=await (await fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})).json();
+   if(j.url){showResult(j.url,kind.value==="video")}
+   else o.textContent="שגיאה: "+(j.error||JSON.stringify(j));
+  }
  }catch(e){o.textContent="שגיאה: "+e}b.disabled=false};
 
 /* ---- history ---- */
@@ -277,5 +307,18 @@ SAVE_IDS.forEach(function(id){var el=$(id);if(!el)return;
 document.querySelectorAll(".saveBtn").forEach(function(b){b.addEventListener("click",function(){saveField(b.getAttribute("data-f"))});});
 try{$("full").textContent="פרומפט מלא: "+compose()}catch(e){}
 
+
+
+/* === מצב אורח (12/10) === */
+$("guestBtn").addEventListener("click",function(){
+  var btn=$("guestBtn"),st=$("guestStat");
+  btn.disabled=true;btn.textContent="מחדש…";st.textContent="אורח: בודק…";
+  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"guest_renew"})})
+  .then(function(r){return r.json()}).then(function(j){
+    btn.disabled=false;btn.textContent="🔄 חידוש התארחות";
+    if(j.guest){st.textContent="אורח: פעיל ✓";st.style.color="#7fd492"}
+    else{st.textContent="אורח: מוגבל, המתן כדקה";st.style.color="#ffb347"}
+  }).catch(function(e){btn.disabled=false;btn.textContent="🔄 חידוש התארחות";st.textContent="אורח: שגיאת חיבור";st.style.color="#ff8a8a"});
+});
 
 </script></body></html>
