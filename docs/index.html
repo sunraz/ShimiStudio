@@ -42,7 +42,7 @@ window.addEventListener("unhandledrejection",function(e){window.__d("PROMISE ERR
 
 </script>
 
-<header><h1>Pollinations</h1><span class="pill" id="auth">מחובר אוטומטית (sunraz2)</span><span class="pill" id="bal">יתרה: נטענת…</span><span class="pill" id="guestStat">אורח: לא נבדק</span><button id="guestBtn" style="background:#2b5d3b;color:#fff;border:1px solid #3d8a52;border-radius:10px;padding:6px 14px;font-size:13px;cursor:pointer">🔄 חידוש התארחות</button></header>
+<header><h1>Pollinations</h1><span class="pill" id="auth">מחובר אוטומטית (sunraz2)</span><span class="pill" id="bal">יתרה: נטענת…</span><span class="pill" id="guestStat">אורח: לא נבדק</span><span class="pill" title="מסלול האורח לא עובר סינון תוכן של הספק — מתאים לבגדי טסט ולניסויי פיזיקה" style="border-color:#8a5fbf;color:#c9a7ff">אורח לא מפולטר ✓</span><button id="guestBtn" style="background:#2b5d3b;color:#fff;border:1px solid #3d8a52;border-radius:10px;padding:6px 14px;font-size:13px;cursor:pointer">🔄 חידוש התארחות</button></header>
 <main>
 
 <div class="card" id="gpuCard"><h2>מחברות GPU (קולאב + קגל)</h2>
@@ -67,7 +67,7 @@ window.addEventListener("unhandledrejection",function(e){window.__d("PROMISE ERR
 <div class="card"><h2>יצירה</h2>
 <div class="row">
 <div><label>סוג</label><select id="kind"><option value="image">תמונה (עובד, חינם)</option><option value="video">וידאו (דורש יתרה בתשלום)</option></select></div>
-<div><label>מודל</label><select id="model"><option value="flux">Flux Schnell (מהיר, ברירת מחדל)</option><option value="zimage">Z-Image Turbo (מהיר וזול)</option><option value="klein">Flux Klein 4B</option><option value="kontext">Flux Kontext (עריכה עם רפרנס)</option><option value="dreamshaper">DreamShaper 8</option><option value="gptimage">GPT Image Mini</option><option value="gpt-image-1.5">GPT Image 1.5</option><option value="microsoft/mai-image-2.6-flash">MAI Image Flash</option><option value="community/MarcosFRG/sdxl-lightning">SDXL Lightning</option><option value="community/vendouple/lucid-origin">Lucid Origin</option></select><div class="note" style="margin-top:4px">בתמונות (מצב אורח, חינם) המודל הוא Sana — הבחירה כאן משפיעה רק על וידאו.</div></div>
+<div><label>מודל</label><select id="model"><option value="flux">Flux Schnell (מהיר, ברירת מחדל)</option><option value="zimage">Z-Image Turbo (מהיר וזול)</option><option value="klein">Flux Klein 4B</option><option value="kontext">Flux Kontext (עריכה עם רפרנס)</option><option value="dreamshaper">DreamShaper 8</option><option value="gptimage">GPT Image Mini</option><option value="gpt-image-1.5">GPT Image 1.5</option><option value="microsoft/mai-image-2.6-flash">MAI Image Flash</option><option value="community/MarcosFRG/sdxl-lightning">SDXL Lightning</option><option value="community/vendouple/lucid-origin">Lucid Origin</option></select><div class="note" style="margin-top:4px">בתמונות (מצב אורח, חינם) המודל הוא Sana — הבחירה כאן משפיעה רק על וידאו. מסלול האורח לא מפולטר (אין סינון תוכן); עריכה עם רפרנס (Kontext) ווידאו דורשים יתרה בתשלום.</div></div>
 <div><label>רוחב</label><input id="w" value="832"></div>
 <div><label>גובה</label><input id="h" value="480"></div>
 <div><label>סיד</label><input id="seed" value="4242"></div>
