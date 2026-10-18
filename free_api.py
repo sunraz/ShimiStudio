@@ -1,5 +1,7 @@
 """
 ShimiStudio Free API Rotation System
+No-Filter Policy (permanent, Sun 18/10): איפוס פילטרים קבוע בכל המנועים — ראה no_filter.py.
+ספקים מסוננים (כולל מנוע בייס44 המתארח) נופלים באופן אוטומטי לספק הבא ללא סינון.
 Free API rotation system for image and video generation when local GPU resources are unavailable.
 """
 

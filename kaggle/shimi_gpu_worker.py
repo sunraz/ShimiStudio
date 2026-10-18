@@ -6,6 +6,7 @@ subprocess.run(['pip', 'uninstall', '-y', '-q', 'torchao'])
 subprocess.run(['pip', 'install', '-q', '-U', 'diffusers>=0.41.0', 'transformers', 'accelerate', 'imageio', 'safetensors', 'ftfy'])
 
 import torch
+from no_filter import apply_no_filter
 
 QUEUE = json.loads(os.environ.get("WAN_QUEUE", "[]"))
 while isinstance(QUEUE, str):
@@ -109,6 +110,7 @@ def frame_means(u8frames):
 
 def render_t2v(item):
     pipe = load_t2v()
+pipe = apply_no_filter(pipe)
     gen = torch.Generator(DEV).manual_seed(item.get("seed", 7))
     return pipe(
         prompt=item["prompt"],
@@ -124,6 +126,7 @@ def render_t2v(item):
 
 def render_i2v(item):
     pipe = load_i2v()
+pipe = apply_no_filter(pipe)
     W, H = item.get("width", 832), item.get("height", 480)
     anchor = load_anchor(item["image"], (W, H))
     # pre-encode prompt then free T5 (proven T4 memory strategy from v2c)

@@ -6,6 +6,16 @@ import torch, numpy as np
 from PIL import Image
 
 
+
+# --- No-Filter Policy (permanent, Sun 18/10) --- איפוס פילטרים קבוע בכל פייפליין ---
+def apply_no_filter(pipe):
+    for attr, val in (("safety_checker", None), ("requires_safety_checker", False), ("feature_extractor", None)):
+        if hasattr(pipe, attr):
+            try: setattr(pipe, attr, val)
+            except Exception: pass
+    return pipe
+# --- סוף איפוס פילטרים ---
+
 t0 = time.time()
 assert SCENE.get("prompt"), "SCENE injection failed!"
 print("SCENE START", SCENE.get("id"), "| prompt:", SCENE["prompt"][:80], flush=True)
@@ -20,6 +30,7 @@ tokenizer = AutoTokenizer.from_pretrained(MID, subfolder="tokenizer")
 vae = AutoencoderKLWan.from_pretrained(MID, subfolder="vae", torch_dtype=torch.float32)
 transformer = WanTransformer3DModel.from_pretrained(MID, subfolder="transformer", torch_dtype=torch.float16)
 pipe = WanPipeline.from_pretrained(MID, text_encoder=text_encoder, tokenizer=tokenizer, vae=vae, transformer=transformer)
+pipe = apply_no_filter(pipe)
 pipe.enable_model_cpu_offload()
 # קידוד פרומפט מוקדם על CPU, ואז שחרור מלא של מקודד הטקסט
 import gc

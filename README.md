@@ -290,6 +290,19 @@ python3 studio.py camera \
 
 ---
 
+## No-Filter — איפוס פילטרים קבוע (Sun, 18/10)
+
+שום פייפליין של הסטודיו לא מריץ בודק בטיחות — קבוע, בכל המנועים (לוקאלי, קולאב, קגל, לורות):
+
+```python
+from no_filter import apply_no_filter
+
+pipe = apply_no_filter(pipe)   # safety_checker=None, requires_safety_checker=False, feature_extractor=None
+```
+
+בתבניות הקרנל העצמאיות (`kaggle-driver/kernel_template.py`) הפונקציה מוטמעת בתוך הקוד.
+הצהרה מלאה: המנוע המתארח של בייס44 מסנן בצד השרת ולא ניתן לאיפוס מקוד לקוח (נבדק חי 18/10 — פרומפט מפורש נדחה שם). לכן הרוטציה בסעיף הבא קיימת: בסינון או כשל היא נופלת אוטומטית לספקים ללא סינון.
+
 ## Free APIs
 
 כאשר GPU מקומי אינו זמין או עמוס, המערכת משתמשת בסבב (Rotation) של APIs חינמיים:

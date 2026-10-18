@@ -1,3 +1,4 @@
+# No-Filter Policy (permanent, Sun 18/10): איפוס פילטרים קבוע — ראה no_filter.py
 #!/usr/bin/env python3
 """
 ShimiStudio — LoRA Trainer v1.0
