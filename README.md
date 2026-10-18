@@ -308,6 +308,7 @@ pipe = apply_no_filter(pipe)   # safety_checker=None, requires_safety_checker=Fa
 כאשר GPU מקומי אינו זמין או עמוס, המערכת משתמשת בסבב (Rotation) של APIs חינמיים:
 
 | ספק (Provider) | סוג (Type) | הגבלה יומית (Daily Limit) | תמיכת NSFW | איכות | דורש אימות (Auth) |
+| gateway44 (Base44 gateway — קרדיטי החשבון השני, premium) | תמונה | לפי קרדיטים | כן | ✅ אומת חי 18/10 (תוכן מפורש) |
 |----------------|------------|--------------------------|-----------|-------|-------------------|
 | **Airforce** | Image | 1,000 בקשות/יום | ✅ כן | High | ❌ ללא |
 | **Pollinations** | Image | 100 בקשות/יום | ✅ כן | Medium | ❌ ללא |

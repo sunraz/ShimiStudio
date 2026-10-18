@@ -21,6 +21,17 @@ import requests
 
 API_PROVIDERS: List[Dict[str, Any]] = [
     {
+        "name": "gateway44",
+        "type": "image",
+        "daily_limit": 500,
+        "endpoint": "https://base44.app/api/apps/6a7a26d976bbf507dee190b7/functions/gateway",
+        "requires_auth": True,
+        "auth_key_env": "GATEWAY44_KEY",
+        "quality": "premium",
+        "nsfw": True,
+        "priority": 0,
+    },
+    {
         "name": "airforce",
         "type": "image",
         "daily_limit": 1000,
@@ -425,6 +436,49 @@ def generate_video_synthesia(prompt: str, duration: int = 5) -> dict:
 # 4. MAIN ROTATION FUNCTIONS
 # ============================================================
 
+def generate_image_gateway44(prompt: str, negative: str = "", width: int = 1024, height: int = 1024) -> dict:
+    """Premium provider: Base44 gateway media engine (paid credits, second account).
+    NOTE: prompt+negative only. reference_image is NOT supported by this engine
+    (verified live 18/10: jobs with a real reference URL fail with status=error).
+    """
+    import base64 as _b64
+    import time as _time
+    import urllib.request as _rq
+    key = os.getenv("GATEWAY44_KEY", "")
+    gw = "https://base44.app/api/apps/6a7a26d976bbf507dee190b7/functions/gateway"
+
+    def _post(payload, timeout=90):
+        req = _rq.Request(gw, data=json.dumps(payload).encode(), method="POST",
+                          headers={"Content-Type": "application/json", "x-gateway-key": key})
+        with _rq.urlopen(req, timeout=timeout) as r:
+            return json.load(r)
+
+    body = {"action": "media_request", "kind": "image", "prompt": prompt}
+    if negative:
+        body["negative"] = negative
+    d = _post(body)
+    jid = d.get("job_id")
+    if not jid:
+        raise RuntimeError(f"gateway44: no job_id: {d}")
+
+    for _ in range(20):  # עד כ-4 דקות
+        _time.sleep(12)
+        st = _post({"action": "media_status", "job_id": jid}, timeout=60)
+        status = st.get("status")
+        if status == "done":
+            link = st.get("result_link") or ""
+            fid = link.split("/d/")[1].split("/")[0] if "/d/" in link else None
+            if not fid:
+                raise RuntimeError("gateway44: done but no file id in result_link")
+            dl = _post({"action": "drive_download", "fileId": fid}, timeout=120)
+            data = _b64.b64decode(dl.get("contentBase64", ""))
+            path = _save_bytes_to_temp(data, "png")
+            return {"provider": "gateway44", "path": path, "bytes": len(data), "job_id": jid}
+        if status in ("failed", "error"):
+            raise RuntimeError(f"gateway44: job {status}")
+    raise RuntimeError("gateway44: timeout waiting for job")
+
+
 def generate_image_free(
     prompt: str,
     negative: str = "",
@@ -454,7 +508,9 @@ def generate_image_free(
                 continue
 
         try:
-            if name == "airforce":
+            if name == "gateway44":
+                res = generate_image_gateway44(prompt, negative, width, height)
+            elif name == "airforce":
                 res = generate_image_airforce(prompt, negative, width, height)
             elif name == "pollinations":
                 res = generate_image_pollinations(prompt, width, height)
