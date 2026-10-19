@@ -1,0 +1,62 @@
+{
+  "catalog_version": "1.0",
+  "currency_default": "ILS",
+  "updated": "2026-10-19",
+  "products": [
+    {
+      "id": "lora-lea-v1",
+      "name": "לורת לאה v1 (lea_34)",
+      "type": "lora",
+      "desc": "קובץ LoRA מאומן של הדמות לאה — גוף שעון חול קנוני, פנים מאושרות (זרע 151011). כולל: safetensors, פרומפט קנוני נעול, מדריך הפעלה ל-SDXL/ComfyUI.",
+      "price_ils": 149,
+      "price_usd": 39,
+      "sgc": 149,
+      "delivery": "קישור הורדה פרטי תוך 24 שעות",
+      "preview": "https://aidoor.shimi.land/characters/lea/01_portrait_seated.jpg"
+    },
+    {
+      "id": "lora-shani-v1",
+      "name": "לורת שני v1",
+      "type": "lora",
+      "desc": "קובץ LoRA מאומן של הדמות שני. כולל: safetensors, פרומפט קנוני, מדריך הפעלה.",
+      "price_ils": 149,
+      "price_usd": 39,
+      "sgc": 149,
+      "delivery": "קישור הורדה פרטי תוך 24 שעות",
+      "preview": "https://aidoor.shimi.land/characters/lea/05_face_clear_seated.jpg"
+    },
+    {
+      "id": "renders-pack-premium",
+      "name": "חבילת רנדרים פרימיום",
+      "type": "pack",
+      "desc": "אוסף רנדרים קנוניים באיכות מלאה של דמויות הסטודיו — סטילים, פוזות פיזיקה ופריימים נדירים.",
+      "price_ils": 49,
+      "price_usd": 13,
+      "sgc": 49,
+      "delivery": "קישור ZIP פרטי מיידי לאחר אישור",
+      "preview": "https://aidoor.shimi.land/characters/lea/06_face_smile_seated.jpg"
+    },
+    {
+      "id": "lora-custom-training",
+      "name": "אימון LoRA מותאם אישית",
+      "type": "service",
+      "desc": "אימון LoRA על דמות משלך — מהרפרנסים שלך לקובץ עובד. כולל סבב תיקונים עד לאישור.",
+      "price_ils": 499,
+      "price_usd": 129,
+      "sgc": 499,
+      "delivery": "5-7 ימי עבודה",
+      "preview": "https://aidoor.shimi.land/characters/lea/07_closeup_body_front.jpg"
+    },
+    {
+      "id": "video-seedance-clip",
+      "name": "קליפ וידאו Image-to-Video",
+      "type": "service",
+      "desc": "הנפשת דמות מתמונת רפרנס — תנועה, פיזיקה וקנון מדויק דרך Seedance. עד 10 שניות, 1080p.",
+      "price_ils": 299,
+      "price_usd": 75,
+      "sgc": 299,
+      "delivery": "72 שעות",
+      "preview": "https://aidoor.shimi.land/characters/lea/03_standing_front.jpg"
+    }
+  ]
+}
