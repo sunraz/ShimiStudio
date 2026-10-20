@@ -89,10 +89,10 @@ window.addEventListener("unhandledrejection",function(e){window.__d("PROMISE ERR
 <label>תמונת רפרנס (מהמכשיר או URL)</label>
 <div style="display:flex;gap:10px;flex-wrap:wrap">
 <input id="ref" dir="ltr" placeholder="https://... (או העלה מהמכשיר)" style="flex:1;min-width:200px">
-<button class="sec" id="upBtn" style="margin:0;padding:10px 14px">📷 העלה מהמכשיר</button>
+<button class="sec" id="upBtn" style="margin:0;padding:10px 14px">📁 העלה מהמכשיר</button>
 </div>
-<input type="file" id="file" accept="image/*" style="display:none">
-<div id="refBox"><img id="refThumb" alt=""><button class="sec" id="refClear" style="margin:0;padding:6px 12px">הסר רפרנס</button><span class="note">הרפרנס יישלח למודלים שתומכים בזה</span></div>
+<input type="file" id="file" accept="image/*,video/*" style="display:none">
+<div id="refBox"><img id="refThumb" alt=""><video id="refThumbV" controls muted playsinline style="display:none;max-width:260px;border-radius:8px"></video><button class="sec" id="refClear" style="margin:0;padding:6px 12px">הסר רפרנס</button><span class="note">הרפרנס יישלח למודלים שתומכים בזה</span></div>
 
 <button id="go">צור</button> <button class="sec" id="cmdOnly">הצג פקודה</button>
 <pre id="cmd"></pre><div class="out" id="out"></div>
@@ -167,11 +167,11 @@ $("file").onchange=()=>{const f=$("file").files[0];if(!f)return;
  rd.onload=()=>{const b64=rd.result.split(",")[1];
   $("upBtn").disabled=true;$("upBtn").textContent="מעלה…";
   fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"upload",data_base64:b64,mime:f.type})})
-  .then(r=>r.json()).then(j=>{if(j.url){$("ref").value=j.url;$("refThumb").src=j.url;$("refBox").style.display="flex"}
-  else alert("העלאה נכשלה: "+(j.error||""));$("upBtn").disabled=false;$("upBtn").textContent="📷 העלה מהמכשיר"});
+  .then(r=>r.json()).then(j=>{if(j.url){$("ref").value=j.url;var _isV=(f.type||"").indexOf("video")===0;$("refThumb").style.display=_isV?"none":"";var _v=document.getElementById("refThumbV");if(_v){_v.style.display=_isV?"":"none";if(_isV){_v.src=j.url;_v.load()}}$("refBox").style.display="flex"}
+  else alert("העלאה נכשלה: "+(j.error||""));$("upBtn").disabled=false;$("upBtn").textContent="📁 העלה מהמכשיר"});
  };
  rd.readAsDataURL(f);};
-$("refClear").onclick=()=>{$("ref").value="";$("file").value="";$("refBox").style.display="none"};
+$("refClear").onclick=()=>{$("ref").value="";$("file").value="";$("refBox").style.display="none";var _v=document.getElementById("refThumbV");if(_v){_v.pause();_v.removeAttribute("src")};
 
 /* ---- generate: images = free guest tier (browser-direct first, proxy fallback). video = key via proxy ---- */
 function guestDirectUrl(prompt,w,hh,seed){const p=new URLSearchParams({nologo:"true"});if(w)p.set("width",String(w));if(hh)p.set("height",String(hh));if(seed)p.set("seed",String(seed));return "https://image.pollinations.ai/prompt/"+encodeURIComponent(prompt)+"?"+p}
