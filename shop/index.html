@@ -112,11 +112,69 @@ for (const p of PRODUCTS) {
        <div class="spec"><b>סוג</b><span>${p.tag}</span><b>מסירה</b><span>${p.del}</span></div>
        <div class="desc">${p.desc}</div>
        <div class="price"><span class="ils">${p.price} ₪</span><span class="usd">~${p.usd}</span></div>
-       <a class="order" href="${wa}" target="_blank" rel="noopener">הזמנה בוואטסאפ</a>
+       <button class="order" data-buy="${p.id}">הזמנה מהירה</button>
        <div class="note">מחיר השקה · סוכני הרשת: ${p.price} SGC</div>
      </div>
    </div>`);
 }
 </script>
+
+<div id="buyModal" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.7);align-items:center;justify-content:center;padding:18px">
+  <div style="background:#131826;border:1px solid #232b3d;border-radius:14px;padding:20px;width:100%;max-width:400px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <b id="bmTitle" style="font-size:15px">הזמנה</b>
+      <button id="bmX" style="background:none;border:none;color:#8b96ad;font-size:22px;cursor:pointer">×</button>
+    </div>
+    <div id="bmPrice" style="color:#e8b84b;font-weight:700;margin-bottom:12px"></div>
+    <input id="bmName" placeholder="שם" style="width:100%;padding:12px;border-radius:9px;background:#0b0e14;border:1px solid #232b3d;color:#e8ecf4;margin-bottom:8px">
+    <input id="bmPhone" placeholder="טלפון עם קידומת (972...)" inputmode="tel" style="width:100%;padding:12px;border-radius:9px;background:#0b0e14;border:1px solid #232b3d;color:#e8ecf4;margin-bottom:8px">
+    <textarea id="bmNote" placeholder="הערה (לא חובה)" rows="2" style="width:100%;padding:12px;border-radius:9px;background:#0b0e14;border:1px solid #232b3d;color:#e8ecf4;margin-bottom:12px;resize:vertical"></textarea>
+    <button id="bmSend" style="width:100%;padding:13px;border-radius:9px;background:linear-gradient(135deg,#e8b84b,#d19a2a);color:#1a1200;font-weight:800;border:none;cursor:pointer">שלח הזמנה</button>
+    <div id="bmMsg" style="margin-top:10px;font-size:13px;line-height:1.6;color:#8b96ad"></div>
+  </div>
+</div>
+<script>
+(function(){
+  const M=document.getElementById('buyModal'), T=document.getElementById('bmTitle'), P=document.getElementById('bmPrice'),
+        N=document.getElementById('bmName'), PH=document.getElementById('bmPhone'), NO=document.getElementById('bmNote'),
+        B=document.getElementById('bmSend'), MSG=document.getElementById('bmMsg');
+  let current=null;
+  function open(id){
+    const p=(window.PRODUCTS||[]).find(x=>x.id===id); if(!p) return;
+    current=p; T.textContent=p.name; P.textContent=p.price+' ₪'; MSG.textContent=''; B.disabled=false; B.textContent='שלח הזמנה';
+    M.style.display='flex'; N.focus();
+  }
+  document.querySelectorAll('[data-buy]').forEach(b=>b.addEventListener('click',()=>open(b.dataset.buy)));
+  document.getElementById('bmX').addEventListener('click',()=>M.style.display='none');
+  M.addEventListener('click',e=>{ if(e.target===M) M.style.display='none'; });
+  B.addEventListener('click',async()=>{
+    const name=N.value.trim(), phone=PH.value.replace(/\D/g,'');
+    if(phone.length<10){ MSG.style.color='#e2604a'; MSG.textContent='מספר טלפון לא תקין — צריך קידומת מדינה.'; return; }
+    B.disabled=true; B.textContent='שולח…'; MSG.style.color='#8b96ad'; MSG.textContent='';
+    try{
+      const r=await fetch('https://base44.app/api/apps/6a901f55a4d9a9b76a095a77/functions/shopOrder',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({product_id:current.id,name,phone,note:NO.value.trim()})});
+      const d=await r.json();
+      if(d.ok){
+        MSG.style.color='#4ecb8f';
+        MSG.innerHTML='ההזמנה נרשמה · <b>'+d.ref+'</b><br>שלחנו לך אישור בוואטסאפ. נחזור עם קישור תשלום ומועד מסירה.';
+        B.textContent='נשלח ✓';
+      } else if(d.error==='too_many'){
+        MSG.style.color='#e8b84b'; MSG.innerHTML='כבר יש הזמנה פתוחה מהמספר הזה ('+(d.ref||'')+'). נחזור אליך, או כתוב לנו בוואטסאפ.';
+        B.disabled=false; B.textContent='שלח הזמנה';
+      } else {
+        MSG.style.color='#e2604a'; MSG.textContent='לא נשלח: '+(d.error||'שגיאה');
+        B.disabled=false; B.textContent='שלח הזמנה';
+      }
+    }catch(e){
+      MSG.style.color='#e2604a'; MSG.textContent='שגיאת רשת. אפשר לכתוב לנו בוואטסאפ ונשלים ידנית.';
+      B.disabled=false; B.textContent='שלח הזמנה';
+    }
+  });
+  window.PRODUCTS=PRODUCTS;
+})();
+</script>
+
 </body>
 </html>
