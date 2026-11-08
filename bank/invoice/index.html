@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>חשבונית — שימי</title>
+<style>
+:root{--bg:#0b1220;--card:#141d2e;--line:#243149;--txt:#e8eefc;--dim:#8b9bb4;--green:#4ecb8f;--gold:#e8b84b;--red:#e2604a}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,sans-serif;padding:16px 14px 40px;font-size:15px}
+h1{font-size:18px;margin-bottom:4px}
+.sub{color:var(--dim);font-size:12.5px;margin-bottom:16px}
+label{display:block;font-size:12px;color:var(--dim);margin:12px 0 5px}
+input,textarea{width:100%;padding:12px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--txt);font-size:15px;font-family:inherit}
+.row{display:flex;gap:10px}
+.row>div{flex:1}
+.go{width:100%;margin-top:18px;padding:15px;border-radius:11px;border:none;background:linear-gradient(135deg,#4ecb8f,#2f9e6a);color:#04120c;font-weight:800;font-size:16px}
+.view{width:100%;margin-top:10px;padding:14px;border-radius:11px;border:1px solid var(--line);background:var(--card);color:var(--txt);font-weight:700;font-size:15px}
+.bad{color:var(--red);font-size:13px;margin-top:12px}
+.good{color:var(--green);font-size:14px;margin-top:12px;line-height:1.6}
+.sum{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:14px;margin-top:14px;font-size:13.5px;line-height:1.7}
+.sum b{color:var(--gold)}
+</style>
+</head>
+<body>
+<h1>הנפקת חשבונית</h1>
+<div class="sub" id="sub">טוען…</div>
+
+<div id="form" style="display:none">
+  <div class="row"><div><label>שם הלקוח</label><input id="cname"></div><div><label>ח.פ / ת.ז</label><input id="ctax"></div></div>
+  <div class="row"><div><label>טלפון</label><input id="cphone" inputmode="tel"></div><div><label>אימייל</label><input id="cemail" inputmode="email"></div></div>
+  <div class="row"><div><label>סכום (₪)</label><input id="amount" inputmode="decimal"></div><div><label>תאריך</label><input id="idate"></div></div>
+  <label>תיאור</label><textarea id="desc" rows="2"></textarea>
+  <div class="sum" id="sum"></div>
+  <button class="go" id="issue">הנפק חשבונית</button>
+  <button class="view" id="view" style="display:none">צפייה / הדפסה</button>
+  <div id="msg"></div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const API='https://base44.app/api/apps/6a901f55a4d9a9b76a095a77/functions/invoicePage';
+const KEY=localStorage.getItem('bank_key')||'';
+const id=new URLSearchParams(location.search).get('id')||'';
+const $=s=>document.querySelector(s);
+const money=n=>Number(n||0).toLocaleString('he-IL',{minimumFractionDigits:2,maximumFractionDigits:2});
+let inv=null,key=KEY;
+
+function sum(){
+  const a=Number($('#amount').value||0);
+  const vat=Math.round((a-a/1.18)*100)/100;
+  $('#sum').innerHTML=`לפני מע"מ <b>₪${money(a-vat)}</b> · מע"מ 18% <b>₪${money(vat)}</b><br>סה"כ <b>₪${money(a)}</b>`;
+}
+
+async function load(){
+  if(!id){$('#sub').textContent='חסר מזהה חשבונית';return;}
+  const k=key||prompt('מפתח גישה');
+  if(!k){$('#sub').textContent='נדרש מפתח';return;}
+  key=k;localStorage.setItem('bank_key',k);
+  const r=await fetch(`${API}?action=get&id=${encodeURIComponent(id)}`,{headers:{'x-waba-key':k}});
+  const d=await r.json();
+  if(!d.ok){$('#sub').textContent='שגיאה: '+(d.error||'');return;}
+  inv=d.invoice;
+  $('#sub').textContent=(inv.status==='issued'?'הונפקה · '+inv.number:'טיוטה שנקלטה אוטומטית מהתנועה');
+  $('#cname').value=inv.customer_name||'';
+  $('#ctax').value=inv.customer_tax_id||'';
+  $('#cphone').value=inv.customer_phone||'';
+  $('#cemail').value=inv.customer_email||'';
+  $('#amount').value=inv.amount||'';
+  $('#idate').value=inv.issue_date||new Date().toISOString().slice(0,10);
+  $('#desc').value=inv.description||'';
+  $('#form').style.display='block';
+  sum();
+  if(inv.status==='issued'){$('#issue').textContent='עדכן חשבונית';$('#view').style.display='block';}
+}
+
+$('#amount').addEventListener('input',sum);
+
+$('#issue').addEventListener('click',async()=>{
+  $('#msg').textContent='';$('#issue').disabled=true;
+  try{
+    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','x-waba-key':key},
+      body:JSON.stringify({id,action:'issue',customer_name:$('#cname').value,customer_tax_id:$('#ctax').value,
+        customer_phone:$('#cphone').value,customer_email:$('#cemail').value,amount:$('#amount').value,
+        description:$('#desc').value,issue_date:$('#idate').value})});
+    const d=await r.json();
+    if(d.ok){
+      inv=d.invoice;
+      $('#msg').className='good';
+      $('#msg').textContent='החשבונית הונפקה · מספר '+(inv.number||'')+' — נשמרה וניתנת להדפסה';
+      $('#view').style.display='block';$('#sub').textContent='הונפקה · '+inv.number;
+    } else { $('#msg').className='bad'; $('#msg').textContent='שגיאה: '+(d.error||''); }
+  }catch(e){ $('#msg').className='bad'; $('#msg').textContent='שגיאת רשת'; }
+  $('#issue').disabled=false;
+});
+
+$('#view').addEventListener('click',()=>{ location.href=`${API}?action=view&id=${encodeURIComponent(id)}&key=${encodeURIComponent(key)}`; });
+
+load();
+})();
+</script>
+</body>
+</html>
