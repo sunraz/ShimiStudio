@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<title>בנק הרשת — שימי</title>
+<style>
+:root{--bg:#0b1220;--card:#141d2e;--card2:#1b2740;--line:#243149;--txt:#e8eefc;--dim:#8b9bb4;--gold:#e8b84b;--green:#4ecb8f;--red:#e2604a}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;font-size:14.5px;padding-bottom:30px}
+header{padding:18px 16px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(11,18,32,.96);backdrop-filter:blur(8px);z-index:5}
+h1{font-size:17px;display:flex;justify-content:space-between;align-items:center}
+h1 span{font-size:11px;color:var(--dim);font-weight:400;letter-spacing:.08em}
+.total{margin-top:10px;display:flex;align-items:baseline;gap:8px}
+.total b{font-size:30px;color:var(--gold);font-variant-numeric:tabular-nums}
+.total i{font-style:normal;font-size:12px;color:var(--dim)}
+#gate{padding:24px 16px}
+#gate input{width:100%;padding:14px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--txt);margin-bottom:10px;text-align:center}
+#gate button{width:100%;padding:14px;border-radius:10px;background:linear-gradient(135deg,#4ecb8f,#2f9e6a);color:#04120c;font-weight:800;border:none}
+#msg{color:var(--red);font-size:13px;margin-top:10px;min-height:18px}
+#list{padding:12px 12px 0}
+.acc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:9px;cursor:pointer}
+.acc:active{background:var(--card2)}
+.acc .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.acc .nm{font-weight:600;font-size:14.5px}
+.acc .key{font-size:11px;color:var(--dim);margin-top:3px;font-family:ui-monospace,monospace}
+.acc .bal{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.acc .bal small{font-size:11px;color:var(--dim);font-weight:400}
+.acc .meta{margin-top:7px;font-size:11.5px;color:var(--dim);display:flex;gap:10px;flex-wrap:wrap}
+.pill{padding:1px 7px;border-radius:6px;background:#0e1626;border:1px solid var(--line);font-size:10.5px}
+.pill.test{color:var(--gold);border-color:#4a3c1d}
+.pill.live{color:var(--green);border-color:#1f4436}
+#detail{display:none;padding:12px}
+#detail .back{color:var(--dim);font-size:13px;margin-bottom:10px;cursor:pointer}
+.tx{background:var(--card);border-radius:10px;padding:10px 12px;margin-bottom:7px;display:flex;justify-content:space-between;gap:10px}
+.tx .l{min-width:0}
+.tx .d{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx .s{font-size:11px;color:var(--dim);margin-top:2px}
+.tx .a{text-align:left;white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:700}
+.tx .a.in{color:var(--green)}
+.tx .a.out{color:var(--red)}
+.tx .a small{display:block;font-size:10px;color:var(--dim);font-weight:400}
+.note{margin:14px 12px;padding:12px;border-radius:10px;background:#152036;border:1px solid var(--line);font-size:12.5px;color:var(--dim);line-height:1.6}
+</style>
+</head>
+<body>
+<header>
+  <h1>בנק הרשת <span id="stamp">—</span></h1>
+  <div class="total"><b id="total">—</b><i>סה"כ · SGC ו-ILS</i></div>
+</header>
+
+<div id="gate">
+  <input id="key" type="password" placeholder="מפתח גישה" autocomplete="off">
+  <button id="go">כניסה</button>
+  <div id="msg"></div>
+</div>
+
+<div id="list"></div>
+<div id="detail"></div>
+<div class="note" id="foot">
+  קריאה בלבד. הדף לא מבצע משיכות ולא מזיז כסף. מטבעות מעורבים: SGC הוא מטבע הרשת הפנימי, ILS הוא שקל.
+</div>
+
+<script>
+(() => {
+'use strict';
+const API = 'https://base44.app/api/apps/6a901f55a4d9a9b76a095a77/functions/bankDashboard';
+let KEY = localStorage.getItem('bank_key') || '';
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = (n) => Number(n).toLocaleString('he-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+async function call(action, extra = {}) {
+  const r = await fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-waba-key': KEY },
+    body: JSON.stringify({ action, ...extra }),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (r.status === 401) throw new Error('unauthorized');
+  return d;
+}
+
+function show(key) {
+  KEY = key; localStorage.setItem('bank_key', key);
+  $('#gate').style.display = 'none';
+  load();
+}
+
+async function load() {
+  $('#list').innerHTML = '<div class="note">טוען…</div>';
+  try {
+    const d = await call('summary');
+    if (!d.ok) { $('#list').innerHTML = ''; $('#msg').textContent = 'שגיאה: ' + (d.error || ''); return; }
+    $('#total').textContent = fmt(d.total) + ' ₪';
+    $('#stamp').textContent = d.count + ' חשבונות · ' + new Date().toLocaleTimeString('he-IL', {hour:'2-digit',minute:'2-digit'});
+    $('#list').innerHTML = d.accounts.map(a => `
+      <div class="acc" data-k="${esc(a.key)}">
+        <div class="top">
+          <div>
+            <div class="nm">${esc(a.name || a.key)}</div>
+            <div class="key">${esc(a.key)}</div>
+          </div>
+          <div class="bal" style="color:${a.balance_agorot ? 'var(--gold)' : 'var(--dim)'}">${fmt(a.balance)} <small>${esc(a.currency)}</small></div>
+        </div>
+        <div class="meta">
+          <span class="pill">${esc(a.type)}</span>
+          <span class="pill">${a.tx_count} תנועות</span>
+          ${a.is_test ? '<span class="pill test">בדיקה</span>' : ''}
+          ${a.status !== 'active' ? '<span class="pill">'+esc(a.status)+'</span>' : '<span class="pill live">active</span>'}
+        </div>
+      </div>`).join('');
+    document.querySelectorAll('.acc').forEach(el => el.addEventListener('click', () => openAcct(el.dataset.k)));
+  } catch (e) {
+    if (e.message === 'unauthorized') { localStorage.removeItem('bank_key'); location.reload(); }
+  }
+}
+
+async function openAcct(k) {
+  $('#list').style.display = 'none'; $('#foot').style.display = 'none';
+  const box = $('#detail'); box.style.display = 'block';
+  box.innerHTML = '<div class="back">‹ חזרה</div><div class="note">טוען…</div>';
+  box.querySelector('.back').addEventListener('click', () => {
+    box.style.display = 'none'; $('#list').style.display = 'block'; $('#foot').style.display = 'block';
+  });
+  const d = await call('account', { account_key: k });
+  if (!d.ok) { box.innerHTML += '<div class="note">שגיאה: ' + esc(d.error) + '</div>'; return; }
+  const txs = d.txs.map(t => `
+    <div class="tx">
+      <div class="l">
+        <div class="d">${esc(t.desc || t.type)}</div>
+        <div class="s">${new Date(t.date).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${esc(t.type)}${t.ref ? ' · ' + esc(t.ref) : ''}</div>
+      </div>
+      <div class="a ${t.dir === 'in' ? 'in' : 'out'}">${t.dir === 'in' ? '+' : '−'}${fmt(t.amount)}
+        <small>יתרה ${fmt(t.after)}</small></div>
+    </div>`).join('') || '<div class="note">אין תנועות בחשבון הזה</div>';
+  const pays = d.payouts.length ? '<div class="note" style="margin:12px 0 8px"><b>משיכות</b></div>' + d.payouts.map(p => `
+    <div class="tx">
+      <div class="l"><div class="d">${esc(p.method)} · ${esc(p.status)}</div>
+      <div class="s">${new Date(p.date).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${esc(p.dest || 'ללא יעד')}</div></div>
+      <div class="a out">−${fmt(p.amount)}</div>
+    </div>`).join('') : '';
+  box.innerHTML = `<div class="back">‹ חזרה</div>
+    <div class="note" style="margin:0 0 12px"><b>${esc(k)}</b><br>יתרה: ${fmt(d.balance)}</div>${txs}${pays}`;
+  box.querySelector('.back').addEventListener('click', () => {
+    box.style.display = 'none'; $('#list').style.display = 'block'; $('#foot').style.display = 'block';
+  });
+}
+
+$('#go').addEventListener('click', async () => {
+  const k = $('#key').value.trim(); if (!k) return;
+  $('#msg').textContent = '';
+  try { KEY = k; const d = await call('summary'); if (!d.ok) throw new Error(d.error); show(k); }
+  catch (e) { $('#msg').textContent = e.message === 'unauthorized' ? 'מפתח שגוי' : 'שגיאה: ' + e.message; }
+});
+$('#key').addEventListener('keydown', e => { if (e.key === 'Enter') $('#go').click(); });
+
+if (KEY) { (async () => { try { KEY = localStorage.getItem('bank_key'); const d = await call('summary'); if (d.ok) show(KEY); } catch (_e) {} })(); }
+})();
+</script>
+</body>
+</html>
