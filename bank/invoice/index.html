@@ -2,102 +2,167 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>חשבונית — שימי</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07070b">
+<title>חשבונית · בנק הרשת</title>
 <style>
-:root{--bg:#0b1220;--card:#141d2e;--line:#243149;--txt:#e8eefc;--dim:#8b9bb4;--green:#4ecb8f;--gold:#e8b84b;--red:#e2604a}
+:root{--gold:#e5c072;--gold2:#f6dfa4;--line:rgba(255,255,255,.09);--txt:#f2f3f7;--dim:#8d90a1;--dim2:#5f6273}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,sans-serif;padding:16px 14px 40px;font-size:15px}
-h1{font-size:18px;margin-bottom:4px}
-.sub{color:var(--dim);font-size:12.5px;margin-bottom:16px}
-label{display:block;font-size:12px;color:var(--dim);margin:12px 0 5px}
-input,textarea{width:100%;padding:12px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--txt);font-size:15px;font-family:inherit}
-.row{display:flex;gap:10px}
-.row>div{flex:1}
-.go{width:100%;margin-top:18px;padding:15px;border-radius:11px;border:none;background:linear-gradient(135deg,#4ecb8f,#2f9e6a);color:#04120c;font-weight:800;font-size:16px}
-.view{width:100%;margin-top:10px;padding:14px;border-radius:11px;border:1px solid var(--line);background:var(--card);color:var(--txt);font-weight:700;font-size:15px}
-.bad{color:var(--red);font-size:13px;margin-top:12px}
-.good{color:var(--green);font-size:14px;margin-top:12px;line-height:1.6}
-.sum{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:14px;margin-top:14px;font-size:13.5px;line-height:1.7}
-.sum b{color:var(--gold)}
+body{background:radial-gradient(900px 520px at 85% -10%,rgba(229,192,114,.15),transparent 62%),#07070b;
+ color:var(--txt);font-family:-apple-system,"Segoe UI",system-ui,"Heebo",Arial,sans-serif;font-size:14.5px;line-height:1.55;padding:18px 14px 60px;min-height:100vh}
+.wrap{max-width:760px;margin:0 auto}
+.bar{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.back{width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04);
+ color:var(--txt);display:grid;place-items:center;text-decoration:none;font-size:16px}
+.bar b{font-size:15px}
+.card{background:linear-gradient(165deg,rgba(255,255,255,.05),rgba(255,255,255,.015));border:1px solid var(--line);
+ border-radius:20px;padding:18px}
+h1{font-size:19px;font-weight:800;margin-bottom:4px}
+.sub{color:var(--dim);font-size:12.5px;margin-bottom:14px}
+label{display:block;font-size:11.5px;color:var(--dim);font-weight:600;margin:12px 0 5px}
+input,select{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:13px;
+ color:var(--txt);padding:12px 14px;font-size:15px;font-family:inherit;outline:none}
+input:focus,select:focus{border-color:rgba(229,192,114,.6);box-shadow:0 0 0 3px rgba(229,192,114,.1)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{width:100%;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:750;cursor:pointer;
+ background:linear-gradient(150deg,var(--gold2),var(--gold));color:#241a06;margin-top:16px}
+.btn.ghost{background:rgba(255,255,255,.06);color:var(--txt);border:1px solid rgba(255,255,255,.16)}
+.note{border:1px solid var(--line);border-radius:13px;padding:11px 13px;font-size:12.5px;color:var(--dim);background:rgba(255,255,255,.03);margin-top:10px}
+.note.bad{border-color:rgba(255,107,94,.4);background:rgba(255,107,94,.08);color:#ffb3ac}
+.sheet{background:#fff;color:#111;border-radius:14px;padding:26px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.sh{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:14px;margin-bottom:16px;gap:12px}
+.sh h2{font-size:21px}
+.mut{color:#666;font-size:12.5px;line-height:1.65}
+table{width:100%;border-collapse:collapse;margin:16px 0}
+th,td{text-align:right;padding:10px 6px;border-bottom:1px solid #e8e8e8;font-size:14px}
+th{background:#fafafa;font-size:12.5px;color:#444}
+.tot{display:flex;justify-content:space-between;font-size:17px;font-weight:800;padding-top:12px;border-top:2px solid #111;margin-top:6px}
+.small{font-size:11.5px;color:#777;margin-top:14px;line-height:1.7}
+.badge{display:inline-block;font-size:10.5px;padding:3px 9px;border-radius:999px;background:rgba(229,192,114,.18);color:#7a5c15;font-weight:700}
+.center{text-align:center;color:var(--dim);padding:40px 10px;font-size:13px}
+@media print{body{background:#fff;padding:0}.bar,.btn,.no-print{display:none!important}.sheet{box-shadow:none;border-radius:0;padding:0}}
 </style>
 </head>
 <body>
-<h1>הנפקת חשבונית</h1>
-<div class="sub" id="sub">טוען…</div>
-
-<div id="form" style="display:none">
-  <div class="row"><div><label>שם הלקוח</label><input id="cname"></div><div><label>ח.פ / ת.ז</label><input id="ctax"></div></div>
-  <div class="row"><div><label>טלפון</label><input id="cphone" inputmode="tel"></div><div><label>אימייל</label><input id="cemail" inputmode="email"></div></div>
-  <div class="row"><div><label>סכום (₪)</label><input id="amount" inputmode="decimal"></div><div><label>תאריך</label><input id="idate"></div></div>
-  <label>תיאור</label><textarea id="desc" rows="2"></textarea>
-  <div class="sum" id="sum"></div>
-  <button class="go" id="issue">הנפק חשבונית</button>
-  <button class="view" id="view" style="display:none">צפייה / הדפסה</button>
-  <div id="msg"></div>
+<div class="wrap">
+  <div class="bar no-print">
+    <a class="back" href="/bank/">→</a>
+    <b>חשבונית</b>
+  </div>
+  <div id="app"><div class="center">טוען…</div></div>
 </div>
 
 <script>
-(() => {
+(()=>{
 'use strict';
-const API='https://base44.app/api/apps/6a901f55a4d9a9b76a095a77/functions/invoicePage';
+const API='https://base44.app/api/apps/6a901f55a4d9a9b76a095a77/functions/bankApi';
 const KEY=localStorage.getItem('bank_key')||'';
-const id=new URLSearchParams(location.search).get('id')||'';
 const $=s=>document.querySelector(s);
-const money=n=>Number(n||0).toLocaleString('he-IL',{minimumFractionDigits:2,maximumFractionDigits:2});
-let inv=null,key=KEY;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nf=n=>Number(n||0).toLocaleString('he-IL',{minimumFractionDigits:2,maximumFractionDigits:2});
+const today=()=>new Date().toISOString().slice(0,10);
+const qs=new URLSearchParams(location.search);
+const ID=qs.get('id')||'';
 
-function sum(){
-  const a=Number($('#amount').value||0);
-  const vat=Math.round((a-a/1.18)*100)/100;
-  $('#sum').innerHTML=`לפני מע"מ <b>₪${money(a-vat)}</b> · מע"מ 18% <b>₪${money(vat)}</b><br>סה"כ <b>₪${money(a)}</b>`;
+async function api(action,extra={}){
+  const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','x-waba-key':KEY},body:JSON.stringify({action,...extra})});
+  return r.json().catch(()=>({ok:false,error:'bad_response'}));
 }
 
-async function load(){
-  if(!id){$('#sub').textContent='חסר מזהה חשבונית';return;}
-  const k=key||prompt('מפתח גישה');
-  if(!k){$('#sub').textContent='נדרש מפתח';return;}
-  key=k;localStorage.setItem('bank_key',k);
-  const r=await fetch(`${API}?action=get&id=${encodeURIComponent(id)}`,{headers:{'x-waba-key':k}});
-  const d=await r.json();
-  if(!d.ok){$('#sub').textContent='שגיאה: '+(d.error||'');return;}
-  inv=d.invoice;
-  $('#sub').textContent=(inv.status==='issued'?'הונפקה · '+inv.number:'טיוטה שנקלטה אוטומטית מהתנועה');
-  $('#cname').value=inv.customer_name||'';
-  $('#ctax').value=inv.customer_tax_id||'';
-  $('#cphone').value=inv.customer_phone||'';
-  $('#cemail').value=inv.customer_email||'';
-  $('#amount').value=inv.amount||'';
-  $('#idate').value=inv.issue_date||new Date().toISOString().slice(0,10);
-  $('#desc').value=inv.description||'';
-  $('#form').style.display='block';
-  sum();
-  if(inv.status==='issued'){$('#issue').textContent='עדכן חשבונית';$('#view').style.display='block';}
+function needKey(){
+  $('#app').innerHTML=`<div class="card"><h1>נדרש מפתח גישה</h1>
+    <div class="sub">פתחו קודם את מסך הבנק והתחברו, ואז חזרו לכאן.</div>
+    <a class="btn" href="/bank/" style="display:block;text-align:center;text-decoration:none">מעבר לבנק</a></div>`;
+}
+if(!KEY){ needKey(); return; }
+
+/* ── טופס יצירה ── */
+function form(pre){
+  pre=pre||{};
+  $('#app').innerHTML=`<div class="card">
+    <h1>חשבונית חדשה</h1>
+    <div class="sub">ממלאים, מנפיקים, מקבלים מסמך מוכן להדפסה או PDF.</div>
+    <label>שם הלקוח</label><input id="fName" value="${esc(pre.customer_name||'')}" placeholder="שם מלא / חברה">
+    <label>סכום כולל מע"מ (₪)</label><input id="fAmt" inputmode="decimal" value="${pre.amount||''}" placeholder="0.00">
+    <label>תיאור</label><input id="fDesc" value="${esc(pre.description||'שירותי רשת שימי')}">
+    <div class="grid2">
+      <div><label>טלפון</label><input id="fPhone" inputmode="tel" value="${esc(pre.customer_phone||'')}" placeholder="050…"></div>
+      <div><label>ח.פ / ת.ז</label><input id="fTax" value="${esc(pre.customer_tax_id||'')}" placeholder="אופציונלי"></div>
+    </div>
+    <label>אמצעי תשלום</label>
+    <select id="fPay"><option value="">—</option><option>אשראי</option><option>ביט</option><option>PayPal</option><option>העברה בנקאית</option><option>מזומן</option></select>
+    <button class="btn" id="fGo">יצירת חשבונית</button>
+    <div id="fMsg"></div>
+  </div>`;
+  $('#fGo').addEventListener('click',async()=>{
+    const name=$('#fName').value.trim(), amount=Number($('#fAmt').value);
+    if(!name||!(amount>0)){ $('#fMsg').innerHTML='<div class="note bad">צריך שם לקוח וסכום גדול מאפס</div>'; return; }
+    const b=$('#fGo'); b.disabled=true; b.textContent='יוצר…';
+    const d=await api('invoice_create',{customer_name:name,amount,description:$('#fDesc').value.trim(),
+      customer_phone:$('#fPhone').value.trim(),customer_tax_id:$('#fTax').value.trim(),
+      payment_method:$('#fPay').value,issue_date:today()});
+    if(d.ok){ location.href='/bank/invoice/?id='+encodeURIComponent(d.id)+'&view=1'; }
+    else{ $('#fMsg').innerHTML='<div class="note bad">'+esc(d.error)+'</div>'; b.disabled=false; b.textContent='יצירת חשבונית'; }
+  });
 }
 
-$('#amount').addEventListener('input',sum);
+/* ── תצוגת חשבונית ── */
+function renderSheet(inv){
+  const amount=Number(inv.amount||0), vat=Number(inv.vat_amount||0);
+  const before=Math.round((amount-vat)*100)/100;
+  const issued=inv.status==='issued';
+  $('#app').innerHTML=`
+  <div class="card no-print" style="margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span class="badge">${issued?'הונפקה':'טיוטה'}</span>
+    <span class="mut" style="color:#8d90a1">${esc(inv.number||'ללא מספר')}</span>
+    <div style="flex:1"></div>
+    ${issued?'':'<button class="btn" id="issue" style="width:auto;margin:0;padding:11px 18px">הנפקה</button>'}
+    <button class="btn ghost" id="print" style="width:auto;margin:0;padding:11px 18px">הדפסה / PDF</button>
+  </div>
+  <div class="sheet">
+    <div class="sh">
+      <div><h2>חשבונית מס</h2>
+        <div class="mut">שימי · רשת סוכני AI<br>עוסק פטור / לפי העסק<br>שימי.לנד</div></div>
+      <div class="mut" style="text-align:left">
+        <b style="font-size:15px;color:#111">${esc(inv.number||'טיוטה')}</b><br>
+        תאריך: ${esc(inv.issue_date||today())}<br>אסמכתא: ${esc(inv.source_ref||'—')}
+      </div>
+    </div>
+    <div class="mut"><b style="color:#111">לכבוד</b><br>
+      ${esc(inv.customer_name||'—')}
+      ${inv.customer_tax_id?'<br>ח.פ/ת.ז: '+esc(inv.customer_tax_id):''}
+      ${inv.customer_phone?'<br>'+esc(inv.customer_phone):''}
+      ${inv.customer_email?'<br>'+esc(inv.customer_email):''}
+    </div>
+    <table><thead><tr><th>תיאור</th><th>כמות</th><th>סכום</th></tr></thead>
+      <tbody><tr><td>${esc(inv.description||'שירותים')}</td><td>1</td><td>₪${nf(before)}</td></tr></tbody></table>
+    <div class="mut" style="display:flex;justify-content:space-between"><span>סה"כ לפני מע"מ</span><b style="color:#111">₪${nf(before)}</b></div>
+    <div class="mut" style="display:flex;justify-content:space-between;margin-top:6px"><span>מע"מ 18%</span><b style="color:#111">₪${nf(vat)}</b></div>
+    <div class="tot"><span>סה"כ לתשלום</span><span>₪${nf(amount)}</span></div>
+    <div class="small">אמצעי תשלום: ${esc(inv.payment_method||'—')}${inv.notes?'<br>הערה: '+esc(inv.notes):''}<br>
+      מסמך זה הופק ממערכת בנק הרשת של שימי.</div>
+  </div>`;
+  $('#print').addEventListener('click',()=>window.print());
+  const iss=$('#issue');
+  if(iss) iss.addEventListener('click',async()=>{
+    iss.disabled=true; iss.textContent='מנפיק…';
+    const d=await api('invoice_issue',{id:inv.id});
+    if(d.ok){ renderSheet(d.invoice); history.replaceState({},'', '/bank/invoice/?id='+encodeURIComponent(inv.id)+'&view=1'); }
+    else{ iss.disabled=false; iss.textContent='הנפקה'; alert('שגיאה: '+(d.error||'')); }
+  });
+}
 
-$('#issue').addEventListener('click',async()=>{
-  $('#msg').textContent='';$('#issue').disabled=true;
-  try{
-    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','x-waba-key':key},
-      body:JSON.stringify({id,action:'issue',customer_name:$('#cname').value,customer_tax_id:$('#ctax').value,
-        customer_phone:$('#cphone').value,customer_email:$('#cemail').value,amount:$('#amount').value,
-        description:$('#desc').value,issue_date:$('#idate').value})});
-    const d=await r.json();
-    if(d.ok){
-      inv=d.invoice;
-      $('#msg').className='good';
-      $('#msg').textContent='החשבונית הונפקה · מספר '+(inv.number||'')+' — נשמרה וניתנת להדפסה';
-      $('#view').style.display='block';$('#sub').textContent='הונפקה · '+inv.number;
-    } else { $('#msg').className='bad'; $('#msg').textContent='שגיאה: '+(d.error||''); }
-  }catch(e){ $('#msg').className='bad'; $('#msg').textContent='שגיאת רשת'; }
-  $('#issue').disabled=false;
-});
-
-$('#view').addEventListener('click',()=>{ location.href=`${API}?action=view&id=${encodeURIComponent(id)}&key=${encodeURIComponent(key)}`; });
-
-load();
+(async()=>{
+  if(!ID){ form(); return; }
+  const d=await api('invoices');
+  if(!d.ok){ $('#app').innerHTML=`<div class="note bad">${esc(d.error)}</div>`; return; }
+  const inv=(d.invoices||[]).find(i=>i.id===ID);
+  if(!inv){ const msg=document.createElement('div'); $('#app').innerHTML=`<div class="card"><h1>לא נמצאה חשבונית</h1>
+    <div class="sub">המזהה ${esc(ID)} לא קיים במערכת.</div>
+    <a class="btn" href="/bank/invoice/" style="display:block;text-align:center;text-decoration:none">יצירת חשבונית חדשה</a></div>`; return; }
+  const full=await api('invoices');
+  renderSheet({...inv, status:inv.status});
+})();
 })();
 </script>
 </body>
