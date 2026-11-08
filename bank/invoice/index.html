@@ -129,7 +129,7 @@ function renderSheet(inv){
       </div>
     </div>
     <div class="mut"><b style="color:#111">לכבוד</b><br>
-      ${esc(inv.customer_name||'—')}
+      ${esc(inv.customer||inv.customer_name||'—')}
       ${inv.customer_tax_id?'<br>ח.פ/ת.ז: '+esc(inv.customer_tax_id):''}
       ${inv.customer_phone?'<br>'+esc(inv.customer_phone):''}
       ${inv.customer_email?'<br>'+esc(inv.customer_email):''}
