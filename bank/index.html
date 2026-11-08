@@ -6,48 +6,64 @@
 <meta name="theme-color" content="#0b1220">
 <title>בנק הרשת — שימי</title>
 <style>
-:root{--bg:#0b1220;--card:#141d2e;--card2:#1b2740;--line:#243149;--txt:#e8eefc;--dim:#8b9bb4;--gold:#e8b84b;--green:#4ecb8f;--red:#e2604a}
+:root{--bg:#0b1220;--card:#141d2e;--card2:#1b2740;--line:#243149;--txt:#e8eefc;--dim:#8b9bb4;--gold:#e8b84b;--green:#4ecb8f;--red:#e2604a;--blue:#5aa2ff}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;font-size:14.5px;padding-bottom:30px}
-header{padding:18px 16px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(11,18,32,.96);backdrop-filter:blur(8px);z-index:5}
-h1{font-size:17px;display:flex;justify-content:space-between;align-items:center}
-h1 span{font-size:11px;color:var(--dim);font-weight:400;letter-spacing:.08em}
-.total{margin-top:10px;display:flex;align-items:baseline;gap:8px}
-.total b{font-size:30px;color:var(--gold);font-variant-numeric:tabular-nums}
-.total i{font-style:normal;font-size:12px;color:var(--dim)}
+body{background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;font-size:14.5px;padding-bottom:34px}
+header{padding:16px 16px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(11,18,32,.97);backdrop-filter:blur(8px);z-index:6}
+h1{font-size:16.5px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+h1 span{font-size:11px;color:var(--dim);font-weight:400}
+.total{margin-top:8px;display:flex;align-items:baseline;gap:8px}
+.total b{font-size:29px;color:var(--gold);font-variant-numeric:tabular-nums}
+.total i{font-style:normal;font-size:11.5px;color:var(--dim)}
+.hbtns{display:flex;gap:8px;margin-top:11px}
+.hb{flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--txt);font-size:13px;font-weight:600}
+.hb.primary{background:linear-gradient(135deg,#4ecb8f,#2f9e6a);color:#04120c;border:none}
 #gate{padding:24px 16px}
 #gate input{width:100%;padding:14px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--txt);margin-bottom:10px;text-align:center}
 #gate button{width:100%;padding:14px;border-radius:10px;background:linear-gradient(135deg,#4ecb8f,#2f9e6a);color:#04120c;font-weight:800;border:none}
 #msg{color:var(--red);font-size:13px;margin-top:10px;min-height:18px}
 #list{padding:12px 12px 0}
-.acc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:9px;cursor:pointer}
-.acc:active{background:var(--card2)}
-.acc .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
-.acc .nm{font-weight:600;font-size:14.5px}
+.acc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:9px}
+.acc .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;cursor:pointer}
+.acc .nm{font-weight:600}
 .acc .key{font-size:11px;color:var(--dim);margin-top:3px;font-family:ui-monospace,monospace}
 .acc .bal{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
 .acc .bal small{font-size:11px;color:var(--dim);font-weight:400}
-.acc .meta{margin-top:7px;font-size:11.5px;color:var(--dim);display:flex;gap:10px;flex-wrap:wrap}
+.acc .meta{margin-top:7px;font-size:11.5px;color:var(--dim);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .pill{padding:1px 7px;border-radius:6px;background:#0e1626;border:1px solid var(--line);font-size:10.5px}
 .pill.test{color:var(--gold);border-color:#4a3c1d}
 .pill.live{color:var(--green);border-color:#1f4436}
 #detail{display:none;padding:12px}
-#detail .back{color:var(--dim);font-size:13px;margin-bottom:10px;cursor:pointer}
+.back{color:var(--dim);font-size:13px;margin-bottom:10px}
 .tx{background:var(--card);border-radius:10px;padding:10px 12px;margin-bottom:7px;display:flex;justify-content:space-between;gap:10px}
 .tx .l{min-width:0}
 .tx .d{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tx .s{font-size:11px;color:var(--dim);margin-top:2px}
 .tx .a{text-align:left;white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:700}
-.tx .a.in{color:var(--green)}
-.tx .a.out{color:var(--red)}
+.tx .a.in{color:var(--green)} .tx .a.out{color:var(--red)}
 .tx .a small{display:block;font-size:10px;color:var(--dim);font-weight:400}
-.note{margin:14px 12px;padding:12px;border-radius:10px;background:#152036;border:1px solid var(--line);font-size:12.5px;color:var(--dim);line-height:1.6}
+.note{margin:12px;padding:12px;border-radius:10px;background:#152036;border:1px solid var(--line);font-size:12.5px;color:var(--dim);line-height:1.6}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:flex-end;z-index:20}
+.sheet.on{display:flex}
+.sheet .in{background:var(--bg);border-radius:16px 16px 0 0;width:100%;max-height:92vh;overflow:auto;padding:18px 16px 26px;border-top:1px solid var(--line)}
+.sheet h2{font-size:16px;margin-bottom:14px;display:flex;justify-content:space-between}
+.sheet h2 button{background:none;border:none;color:var(--dim);font-size:22px}
+label{display:block;font-size:12px;color:var(--dim);margin:10px 0 5px}
+input,select{width:100%;padding:13px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--txt);font-size:15px;font-family:inherit}
+.go{width:100%;margin-top:16px;padding:14px;border-radius:10px;border:none;background:linear-gradient(135deg,#4ecb8f,#2f9e6a);color:#04120c;font-weight:800;font-size:15px}
+.go.danger{background:linear-gradient(135deg,#e2604a,#b8432f);color:#fff}
+.res{margin-top:12px;font-size:13px;line-height:1.6;min-height:20px}
+.ok{color:var(--green)} .bad{color:var(--red)}
 </style>
 </head>
 <body>
 <header>
   <h1>בנק הרשת <span id="stamp">—</span></h1>
   <div class="total"><b id="total">—</b><i>סה"כ · SGC ו-ILS</i></div>
+  <div class="hbtns">
+    <button class="hb primary" id="btnTransfer">העברה חדשה</button>
+    <button class="hb" id="btnRefresh">רענון</button>
+  </div>
 </header>
 
 <div id="gate">
@@ -58,8 +74,14 @@ h1 span{font-size:11px;color:var(--dim);font-weight:400;letter-spacing:.08em}
 
 <div id="list"></div>
 <div id="detail"></div>
-<div class="note" id="foot">
-  קריאה בלבד. הדף לא מבצע משיכות ולא מזיז כסף. מטבעות מעורבים: SGC הוא מטבע הרשת הפנימי, ILS הוא שקל.
+<div id="foot"></div>
+
+<div class="sheet" id="sheet">
+  <div class="in">
+    <h2><span id="shTitle">פעולה</span><button id="shClose">×</button></h2>
+    <div id="shBody"></div>
+    <div class="res" id="shRes"></div>
+  </div>
 </div>
 
 <script>
@@ -67,6 +89,7 @@ h1 span{font-size:11px;color:var(--dim);font-weight:400;letter-spacing:.08em}
 'use strict';
 const API = 'https://base44.app/api/apps/6a901f55a4d9a9b76a095a77/functions/bankDashboard';
 let KEY = localStorage.getItem('bank_key') || '';
+let ACCOUNTS = [];
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -83,81 +106,187 @@ async function call(action, extra = {}) {
   return d;
 }
 
-function show(key) {
-  KEY = key; localStorage.setItem('bank_key', key);
-  $('#gate').style.display = 'none';
-  load();
+function openSheet(title, html) {
+  $('#shTitle').textContent = title;
+  $('#shBody').innerHTML = html;
+  $('#shRes').textContent = '';
+  $('#shRes').className = 'res';
+  $('#sheet').classList.add('on');
+}
+const closeSheet = () => $('#sheet').classList.remove('on');
+$('#shClose').addEventListener('click', closeSheet);
+$('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') closeSheet(); });
+
+function acctOptions(sel) {
+  return ACCOUNTS.map(a => `<option value="${esc(a.key)}" ${a.key === sel ? 'selected' : ''}>${esc(a.key)} · ${fmt(a.balance)} ${esc(a.currency)}</option>`).join('');
 }
 
-async function load() {
-  $('#list').innerHTML = '<div class="note">טוען…</div>';
-  try {
-    const d = await call('summary');
-    if (!d.ok) { $('#list').innerHTML = ''; $('#msg').textContent = 'שגיאה: ' + (d.error || ''); return; }
-    $('#total').textContent = fmt(d.total) + ' ₪';
-    $('#stamp').textContent = d.count + ' חשבונות · ' + new Date().toLocaleTimeString('he-IL', {hour:'2-digit',minute:'2-digit'});
-    $('#list').innerHTML = d.accounts.map(a => `
-      <div class="acc" data-k="${esc(a.key)}">
-        <div class="top">
-          <div>
-            <div class="nm">${esc(a.name || a.key)}</div>
-            <div class="key">${esc(a.key)}</div>
-          </div>
-          <div class="bal" style="color:${a.balance_agorot ? 'var(--gold)' : 'var(--dim)'}">${fmt(a.balance)} <small>${esc(a.currency)}</small></div>
-        </div>
-        <div class="meta">
-          <span class="pill">${esc(a.type)}</span>
-          <span class="pill">${a.tx_count} תנועות</span>
-          ${a.is_test ? '<span class="pill test">בדיקה</span>' : ''}
-          ${a.status !== 'active' ? '<span class="pill">'+esc(a.status)+'</span>' : '<span class="pill live">active</span>'}
-        </div>
-      </div>`).join('');
-    document.querySelectorAll('.acc').forEach(el => el.addEventListener('click', () => openAcct(el.dataset.k)));
-  } catch (e) {
-    if (e.message === 'unauthorized') { localStorage.removeItem('bank_key'); location.reload(); }
-  }
-}
+/* ── העברה ── */
+$('#btnTransfer').addEventListener('click', () => {
+  if (!ACCOUNTS.length) return;
+  openSheet('העברה בין חשבונות', `
+    <label>מחשבון</label><select id="fFrom">${acctOptions(ACCOUNTS[0].key)}</select>
+    <label>לחשבון</label><select id="fTo">${acctOptions(ACCOUNTS[1] ? ACCOUNTS[1].key : ACCOUNTS[0].key)}</select>
+    <label>סכום בש"ח</label><input id="fAmt" inputmode="decimal" placeholder="0.00">
+    <label>תיאור</label><input id="fDesc" placeholder="העברה פנימית">
+    <button class="go" id="fGo">בצע העברה</button>`);
+  $('#fGo').addEventListener('click', async () => {
+    const amt = Number($('#fAmt').value);
+    if (!amt || amt <= 0) return res('סכום לא תקין', false);
+    res('מעביר…');
+    const d = await op('transfer', {
+      from_account_key: $('#fFrom').value, to_account_key: $('#fTo').value,
+      amount_shekels: amt, description: $('#fDesc').value || 'העברה פנימית',
+      idempotency_key: 'ui-tr-' + Date.now(),
+    });
+    if (d.ok) { res(`הועבר ${fmt(d.amount_shekels)} ₪<br>${esc(d.from)} ← ${fmt(d.from_balance_after)}<br>${esc(d.to)} ← ${fmt(d.to_balance_after)}`, true); load(); }
+    else res(esc(d.error || 'שגיאה'), false);
+  });
+});
 
+/* ── חשבון ── */
 async function openAcct(k) {
   $('#list').style.display = 'none'; $('#foot').style.display = 'none';
   const box = $('#detail'); box.style.display = 'block';
   box.innerHTML = '<div class="back">‹ חזרה</div><div class="note">טוען…</div>';
-  box.querySelector('.back').addEventListener('click', () => {
-    box.style.display = 'none'; $('#list').style.display = 'block'; $('#foot').style.display = 'block';
-  });
+  const backFn = () => { box.style.display = 'none'; $('#list').style.display = 'block'; $('#foot').style.display = 'block'; };
+  box.querySelector('.back').addEventListener('click', backFn);
   const d = await call('account', { account_key: k });
-  if (!d.ok) { box.innerHTML += '<div class="note">שגיאה: ' + esc(d.error) + '</div>'; return; }
+  if (!d.ok) { box.innerHTML = '<div class="back">‹ חזרה</div><div class="note">שגיאה</div>'; box.querySelector('.back').addEventListener('click', backFn); return; }
+
   const txs = d.txs.map(t => `
     <div class="tx">
       <div class="l">
         <div class="d">${esc(t.desc || t.type)}</div>
         <div class="s">${new Date(t.date).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${esc(t.type)}${t.ref ? ' · ' + esc(t.ref) : ''}</div>
       </div>
-      <div class="a ${t.dir === 'in' ? 'in' : 'out'}">${t.dir === 'in' ? '+' : '−'}${fmt(t.amount)}
-        <small>יתרה ${fmt(t.after)}</small></div>
-    </div>`).join('') || '<div class="note">אין תנועות בחשבון הזה</div>';
+      <div class="a ${t.dir === 'in' ? 'in' : 'out'}">${t.dir === 'in' ? '+' : '−'}${fmt(t.amount)}<small>יתרה ${fmt(t.after)}</small></div>
+    </div>`).join('') || '<div class="note">אין תנועות</div>';
+
   const pays = d.payouts.length ? '<div class="note" style="margin:12px 0 8px"><b>משיכות</b></div>' + d.payouts.map(p => `
     <div class="tx">
       <div class="l"><div class="d">${esc(p.method)} · ${esc(p.status)}</div>
       <div class="s">${new Date(p.date).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${esc(p.dest || 'ללא יעד')}</div></div>
-      <div class="a out">−${fmt(p.amount)}</div>
+      <div class="a out">−${fmt(p.amount)}${p.status === 'pending' ? `<small><a href="#" data-exec="${esc(p.id)}" style="color:var(--blue)">בצע</a></small>` : ''}</div>
     </div>`).join('') : '';
+
   box.innerHTML = `<div class="back">‹ חזרה</div>
-    <div class="note" style="margin:0 0 12px"><b>${esc(k)}</b><br>יתרה: ${fmt(d.balance)}</div>${txs}${pays}`;
-  box.querySelector('.back').addEventListener('click', () => {
-    box.style.display = 'none'; $('#list').style.display = 'block'; $('#foot').style.display = 'block';
+    <div class="note" style="margin:0 0 10px"><b>${esc(k)}</b><br>יתרה: ${fmt(d.balance)}</div>
+    <div class="hbtns" style="margin-bottom:12px">
+      <button class="hb" id="acDeposit">הפקדה</button>
+      <button class="hb" id="acWithdraw">משיכה</button>
+      <button class="hb" id="acTransfer">העברה</button>
+    </div>
+    ${txs}${pays}`;
+  box.querySelector('.back').addEventListener('click', backFn);
+
+  box.querySelectorAll('[data-exec]').forEach(a => a.addEventListener('click', async (ev) => {
+    ev.preventDefault();
+    const id = a.dataset.exec;
+    openSheet('ביצוע משיכה', `<label>יעד (IBAN / כרטיס / ארנק)</label><input id="pDest" placeholder="IL00...">
+      <button class="go danger" id="pGo">בצע משיכה</button>`);
+    $('#pGo').addEventListener('click', async () => {
+      res('מבצע…');
+      const r = await op('execute_payout', { payout_id: id, destination_ref: $('#pDest').value });
+      if (r.ok) { res(`בוצעה משיכה. יתרה חדשה ${fmt(r.balance_shekels)}`, true); load(); }
+      else res(esc(r.error || 'שגיאה'), false);
+    });
+  }));
+
+  box.querySelector('#acDeposit').addEventListener('click', () => {
+    openSheet('הפקדה / תיקון', `<label>סכום (שלילי = הוצאה)</label><input id="dAmt" inputmode="decimal">
+      <label>תיאור</label><input id="dDesc" placeholder="הפקדת בדיקה">
+      <button class="go" id="dGo">רשום תנועה</button>`);
+    $('#dGo').addEventListener('click', async () => {
+      const amt = Number($('#dAmt').value);
+      if (!amt) return res('סכום לא תקין', false);
+      res('רושם…');
+      const r = await op('adjust', { account_key: k, amount_shekels: amt, description: $('#dDesc').value || 'תנועה ידנית', idempotency_key: 'ui-ad-' + Date.now() });
+      if (r.ok) { res(`נרשם. יתרה ${fmt(r.balance_shekels)}`, true); load(); }
+      else res(esc(r.error || 'שגיאה'), false);
+    });
+  });
+
+  box.querySelector('#acWithdraw').addEventListener('click', () => {
+    openSheet('בקשת משיכה', `<label>סכום</label><input id="wAmt" inputmode="decimal">
+      <label>אמצעי</label>
+      <select id="wMethod"><option value="bank_transfer">העברה בנקאית</option><option value="bit">ביט</option><option value="paypal">PayPal</option><option value="cash">מזומן</option></select>
+      <label>יעד</label><input id="wDest" placeholder="IBAN / טלפון / אימייל">
+      <button class="go danger" id="wGo">צור בקשת משיכה</button>`);
+    $('#wGo').addEventListener('click', async () => {
+      const amt = Number($('#wAmt').value);
+      if (!amt) return res('סכום לא תקין', false);
+      res('יוצר…');
+      const r = await op('payout_request', { account_key: k, amount_shekels: amt, method: $('#wMethod').value, destination_ref: $('#wDest').value, idempotency_key: 'ui-wr-' + Date.now() });
+      if (r.ok) { res('בקשת משיכה נוצרה וממתינה לביצוע — היא מופיעה למטה ברשימת המשיכות', true); openAcct(k); }
+      else res(esc(r.error || 'שגיאה'), false);
+    });
+  });
+
+  box.querySelector('#acTransfer').addEventListener('click', () => {
+    openSheet('העברה מהחשבון', `<label>לחשבון</label><select id="tTo">${acctOptions(ACCOUNTS[0] && ACCOUNTS[0].key !== k ? ACCOUNTS[0].key : (ACCOUNTS[1]||{}).key)}</select>
+      <label>סכום</label><input id="tAmt" inputmode="decimal">
+      <button class="go" id="tGo">בצע</button>`);
+    $('#tGo').addEventListener('click', async () => {
+      const amt = Number($('#tAmt').value);
+      if (!amt) return res('סכום לא תקין', false);
+      res('מעביר…');
+      const r = await op('transfer', { from_account_key: k, to_account_key: $('#tTo').value, amount_shekels: amt, idempotency_key: 'ui-tr-' + Date.now() });
+      if (r.ok) { res(`בוצע. ${fmt(r.from_balance_after)} → ${fmt(r.to_balance_after)}`, true); openAcct(k); }
+      else res(esc(r.error || 'שגיאה'), false);
+    });
   });
 }
 
+function res(txt, good) {
+  const el = $('#shRes');
+  el.innerHTML = txt;
+  el.className = 'res ' + (good === undefined ? '' : good ? 'ok' : 'bad');
+}
+
+async function op(kind, payload) {
+  try { return await call('op', { op: kind, ...payload }); }
+  catch (e) { return { ok: false, error: e.message === 'unauthorized' ? 'מפתח שגוי' : String(e.message) }; }
+}
+
+/* ── טעינה ── */
+async function load() {
+  try {
+    const d = await call('summary');
+    if (!d.ok) { $('#list').innerHTML = ''; $('#msg').textContent = 'שגיאה: ' + (d.error || ''); return; }
+    ACCOUNTS = d.accounts;
+    $('#total').textContent = fmt(d.total) + ' ₪';
+    $('#stamp').textContent = d.count + ' חשבונות';
+    $('#list').innerHTML = d.accounts.map(a => `
+      <div class="acc">
+        <div class="top" data-k="${esc(a.key)}">
+          <div><div class="nm">${esc(a.name || a.key)}</div><div class="key">${esc(a.key)}</div></div>
+          <div class="bal" style="color:${a.balance_agorot ? 'var(--gold)' : 'var(--dim)'}">${fmt(a.balance)} <small>${esc(a.currency)}</small></div>
+        </div>
+        <div class="meta">
+          <span class="pill">${esc(a.type)}</span>
+          <span class="pill">${a.tx_count} תנועות</span>
+          ${a.is_test ? '<span class="pill test">בדיקה</span>' : ''}
+          <span class="pill ${a.status === 'active' ? 'live' : ''}">${esc(a.status)}</span>
+        </div>
+      </div>`).join('');
+    document.querySelectorAll('.acc .top').forEach(el => el.addEventListener('click', () => openAcct(el.dataset.k)));
+    $('#foot').innerHTML = '<div class="note">כל הפעולות נרשמות בספר append-only עם מניעת כפילויות. הפקדה שלילית = הוצאה. משיכה דורשת בקשה ואז ביצוע.</div>';
+  } catch (e) {
+    if (e.message === 'unauthorized') { localStorage.removeItem('bank_key'); location.reload(); }
+  }
+}
+
+$('#btnRefresh').addEventListener('click', load);
 $('#go').addEventListener('click', async () => {
   const k = $('#key').value.trim(); if (!k) return;
-  $('#msg').textContent = '';
-  try { KEY = k; const d = await call('summary'); if (!d.ok) throw new Error(d.error); show(k); }
+  KEY = k; $('#msg').textContent = '';
+  try { const d = await call('summary'); if (!d.ok) throw new Error(d.error || 'שגיאה'); localStorage.setItem('bank_key', k); $('#gate').style.display = 'none'; load(); }
   catch (e) { $('#msg').textContent = e.message === 'unauthorized' ? 'מפתח שגוי' : 'שגיאה: ' + e.message; }
 });
 $('#key').addEventListener('keydown', e => { if (e.key === 'Enter') $('#go').click(); });
 
-if (KEY) { (async () => { try { KEY = localStorage.getItem('bank_key'); const d = await call('summary'); if (d.ok) show(KEY); } catch (_e) {} })(); }
+if (KEY) { (async () => { try { const d = await call('summary'); if (d.ok) { $('#gate').style.display = 'none'; load(); } } catch (_e) {} })(); }
 })();
 </script>
 </body>
