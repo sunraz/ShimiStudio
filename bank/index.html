@@ -225,6 +225,7 @@ svg.spark{width:64px;height:26px;flex:0 0 auto}
 const API='https://base44.app/api/apps/6a901f55a4d9a9b76a095a77/functions/bankApi';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const EMBED='shg_XZVPlG-iKvRNIZHglAyy7vooD4nJhqgbfKA9Zw';
+const UNI='https://uniwallet.shimi.land/connect.html?k=nbp-d76d43f753540eaba55cf8a23692e92635948db172a8ff55';
 let KEY=localStorage.getItem('bank_key')||EMBED;
 let DATA=null, TAB='overview';
 
@@ -472,7 +473,20 @@ function renderCollect(){
 /* ── links / health ── */
 function renderLinks(){
   const v=$('#view');
-  v.innerHTML=`<div class="card" style="margin-bottom:12px"><h3>בריאות המערכת</h3>
+  v.innerHTML=`<div class="card" style="margin-bottom:12px;background:linear-gradient(150deg,rgba(232,184,75,.10),rgba(19,24,38,.6) 55%);border-color:rgba(232,184,75,.35)">
+    <h3 style="display:flex;align-items:center;gap:8px">UniWallet · חיבור חשבונות <span style="font-size:11px;font-weight:600;color:#0b0e14;background:#e8b84b;padding:2px 8px;border-radius:999px">LIVE</span></h3>
+    <div class="pad">
+      <div class="note">חיבור בנקים, כרטיסי אשראי והתראות תנועות ישירות לספר. המפתח כבר מוטמע, אין צורך להקליד אותו.</div>
+      <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:12px">
+        <a class="btn" href="${UNI}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none">פתיחת מרכז החיבורים</a>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <a class="btn sec" href="${UNI}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none">הוספת בנק / אשראי</a>
+          <a class="btn sec" href="${UNI}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none">התראות תנועות</a>
+        </div>
+      </div>
+      <div class="note" style="margin-top:10px">הדף נפתח בכרטיסייה חדשה. אחרי חיבור ראשון, התנועות נקלטות אוטומטית לספר החשבונות.</div>
+    </div></div>
+    <div class="card" style="margin-bottom:12px"><h3>בריאות המערכת</h3>
     <div class="pad" id="healthBox"><div class="skel"></div></div></div>
     <div class="card" style="margin-bottom:12px"><h3>דף סליקה · Grow</h3><div class="pad">
       <div class="note" id="pgState">קוד הדף הנוכחי נטען מהשרת.</div>
