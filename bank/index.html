@@ -466,6 +466,16 @@ function renderLinks(){
   const v=$('#view');
   v.innerHTML=`<div class="card" style="margin-bottom:12px"><h3>בריאות המערכת</h3>
     <div class="pad" id="healthBox"><div class="skel"></div></div></div>
+    <div class="card" style="margin-bottom:12px"><h3>דף סליקה · Grow</h3><div class="pad">
+      <div class="note" id="pgState">קוד הדף הנוכחי נטען מהשרת.</div>
+      <div class="grid2">
+        <div><label>קוד דף סליקה</label><input id="pgCode" inputmode="numeric" value="105238" placeholder="105238"></div>
+        <div><label>מזהה עסק (userId)</label><input id="pgUser" inputmode="numeric" value="10623857" placeholder="10623857"></div>
+      </div>
+      <div style="height:12px"></div>
+      <button class="btn sec" id="pgGo">שמור ובדוק מול Grow</button>
+      <div id="pgOut" style="margin-top:10px"></div>
+    </div></div>
     <div class="card"><h3>חיבור חשבון חדש</h3><div class="pad">
       <div class="note">פותח חשבון פנימי בספר. חשבונות אשראי ובנק מתחברים בפועל דרך קליטת ההתראות.</div>
       <label>שם הבעלים</label><input id="nOwner" placeholder="לדוגמה: קרן שיווק">
@@ -482,6 +492,21 @@ function renderLinks(){
     box.innerHTML=(d.checks||[]).map(c=>`<div class="hc"><span class="st ${c.ok?'g':'r'}"></span>
       <div class="mid"><b>${esc(c.name)}</b><span>${esc(c.warn||c.detail||'')}</span></div></div>`).join('')
       +`<div class="note" style="margin-top:10px">בדיקה ארכה ${d.ms||0} מ״ש</div>`;
+  });
+  api('health').then(d=>{ /* קיים */ });
+  const pgGo=$('#pgGo');
+  if(pgGo) pgGo.addEventListener('click',async()=>{
+    pgGo.disabled=true; pgGo.textContent='בודק…';
+    const d=await api('grow_page',{page_code:$('#pgCode').value.trim(),user_id:$('#pgUser').value.trim()});
+    if(d.ok&&d.auth_ok){
+      $('#pgOut').innerHTML='<div class="note ok">קוד הדף נקלט ואומת מול Grow ('+esc(d.page_code)+').</div>';
+      toast('דף הסליקה עודכן','ok');
+    }else if(d.ok){
+      $('#pgOut').innerHTML='<div class="note warn">הקוד נשמר אבל Grow לא אישר אותו: '+esc(d.detail||'ללא פירוט')+'</div>';
+    }else{
+      $('#pgOut').innerHTML='<div class="note bad">לא נשמר: '+esc(d.error||'שגיאה')+'</div>';
+    }
+    pgGo.disabled=false; pgGo.textContent='שמור ובדוק מול Grow';
   });
   $('#nGo').addEventListener('click',async()=>{
     const btn=$('#nGo'); btn.disabled=true; btn.textContent='פותח…';
