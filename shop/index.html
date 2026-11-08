@@ -158,7 +158,8 @@ for (const p of PRODUCTS) {
       const d=await r.json();
       if(d.ok){
         MSG.style.color='#4ecb8f';
-        MSG.innerHTML='ההזמנה נרשמה · <b>'+d.ref+'</b><br>שלחנו לך אישור בוואטסאפ. נחזור עם קישור תשלום ומועד מסירה.';
+        MSG.innerHTML='ההזמנה נרשמה · <b>'+d.ref+'</b><br>שלחנו לך אישור בוואטסאפ עם אותו קישור.'+
+          (d.pay_url ? '<br><br><a href="'+d.pay_url+'" target="_blank" rel="noopener" style="display:block;text-align:center;padding:13px;border-radius:9px;background:linear-gradient(135deg,#4ecb8f,#2f9e6a);color:#04120c;font-weight:800;text-decoration:none">שלם עכשיו · '+d.price+' ₪</a>' : '');
         B.textContent='נשלח ✓';
       } else if(d.error==='too_many'){
         MSG.style.color='#e8b84b'; MSG.innerHTML='כבר יש הזמנה פתוחה מהמספר הזה ('+(d.ref||'')+'). נחזור אליך, או כתוב לנו בוואטסאפ.';
