@@ -276,6 +276,7 @@ document.addEventListener('visibilitychange',()=>{ if(!document.hidden && DATA &
 
 /* ── render ── */
 function paint(d){
+  $('#lock').classList.add('hide');
   $('#subline').textContent='עודכן '+ago(d.generated_at)+' · '+d.accounts_count+' חשבונות · '+nf0(d.scanned)+' תנועות';
   $('#liveTxt').textContent='מחובר';
   const ils=d.totals.ILS||0;
