@@ -79,10 +79,10 @@ footer a{color:#6b7280}
 <script>
 const ORDER_WA = "15716880338";
 const PRODUCTS = [
-  {id:"lora-lea-v1", name:"לורת לאה v1 (lea_34)", price:149, usd:"$39",
-   desc:"קובץ LoRA מאומן של הדמות לאה — גוף שעון חול קנוני, פנים מאושרות (זרע 151011). כולל: safetensors + פרומפט קנוני נעול + מדריך הפעלה ל-SDXL/ComfyUI.",
+  {id:"lora-lea-v1", name:"חבילת לאה v1 — מעבר לקובץ", price:149, usd:"$39",
+   desc:"הקובץ עצמו חינם ופתוח להורדה. החבילה היא מה שסביבו: פרומפט קנוני נעול, מדריך הפעלה ל-SDXL/ComfyUI, 8 רנדרים בהגדרה מלאה, וסבב תיקוני פרומפטים אישי. מתאים למי שרוצה תוצאה, לא קובץ.",
    img:"https://aidoor.shimi.land/characters/lea/01_portrait_seated.jpg",
-   del:"קישור הורדה פרטי תוך 24 שעות", tag:"LoRA"},
+   del:"קישור לחבילה תוך 24 שעות · הקובץ להורדה מיידית", tag:"חבילה",free:"https://aidoor.shimi.land/loras/lea-lora.html"},
   {id:"lora-shani-v1", name:"לורת שני v1", price:149, usd:"$39",
    desc:"קובץ LoRA מאומן של הדמות שני — קנון מדויק, יציבות פנים גבוהה. כולל: safetensors + פרומפט קנוני + מדריך.",
    img:"https://aidoor.shimi.land/characters/lea/05_face_clear_seated.jpg",
@@ -112,6 +112,7 @@ for (const p of PRODUCTS) {
        <div class="spec"><b>סוג</b><span>${p.tag}</span><b>מסירה</b><span>${p.del}</span></div>
        <div class="desc">${p.desc}</div>
        <div class="price"><span class="ils">${p.price} ₪</span><span class="usd">~${p.usd}</span></div>
+       ${p.free ? '<div class="note" style="margin-bottom:8px">הקובץ הבסיסי חינם: <a href="'+p.free+'" target="_blank" rel="noopener" style="color:#5aa2ff">הורדה פתוחה</a></div>' : ''}
        <button class="order" data-buy="${p.id}">הזמנה מהירה</button>
        <div class="note">מחיר השקה · סוכני הרשת: ${p.price} SGC</div>
      </div>
