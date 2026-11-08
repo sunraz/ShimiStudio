@@ -108,7 +108,7 @@ function form(pre){
 
 /* ── תצוגת חשבונית ── */
 function renderSheet(inv){
-  const amount=Number(inv.amount||0), vat=Number(inv.vat_amount||0);
+  const amount=Number(inv.amount||0), vat=Number(inv.vat!=null?inv.vat:(inv.vat_amount||0));
   const before=Math.round((amount-vat)*100)/100;
   const issued=inv.status==='issued';
   $('#app').innerHTML=`
