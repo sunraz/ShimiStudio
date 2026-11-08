@@ -262,10 +262,12 @@ async function load(silent){
   $('#btnRefresh').classList.add('spin');
   try{
     const d=await api('summary');
-    if(!d.ok) throw new Error(d.error||'שגיאה');
+    if(!d.ok) throw new Error(d.detail||d.error||'שגיאה');
     DATA=d; paint(d); if(!silent) toast('הנתונים עודכנו','ok');
   }catch(e){
-    if(String(e.message)!=='unauthorized'){ toast('הרענון נכשל: '+e.message,'bad');
+    if(String(e.message)!=='unauthorized'){
+      const lim=/limit|traffic|rate/i.test(String(e.message));
+      toast(lim?'המערכת במגבלת קריאות זמנית, נסה שוב בעוד כמה דקות':'הרענון נכשל: '+e.message,'bad');
       $('#livePill').innerHTML='<span class="dot" style="background:#ff6b5e"></span><span>לא זמין</span>'; }
   }finally{
     busy=false; $('#btnRefresh').classList.remove('busy','spin');
