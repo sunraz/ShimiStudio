@@ -224,7 +224,8 @@ svg.spark{width:64px;height:26px;flex:0 0 auto}
 'use strict';
 const API='https://base44.app/api/apps/6a901f55a4d9a9b76a095a77/functions/bankApi';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-let KEY=localStorage.getItem('bank_key')||'';
+const EMBED='shg_XZVPlG-iKvRNIZHglAyy7vooD4nJhqgbfKA9Zw';
+let KEY=localStorage.getItem('bank_key')||EMBED;
 let DATA=null, TAB='overview';
 
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -238,7 +239,12 @@ function toast(msg,kind){ const t=$('#toast'); t.textContent=msg; t.className='o
   t._x=setTimeout(()=>{t.className=''},2800); }
 
 async function api(action,extra={}){
-  const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','x-waba-key':KEY},body:JSON.stringify({action,...extra})});
+  let r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','x-waba-key':KEY},body:JSON.stringify({action,...extra})});
+  if(r.status===401 && KEY!==EMBED){
+    // מפתח ישן בדפדפן — נופלים למפתח המוטמע ומנסים שוב
+    KEY=EMBED; try{ localStorage.setItem('bank_key',EMBED); }catch(e){}
+    r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','x-waba-key':KEY},body:JSON.stringify({action,...extra})});
+  }
   if(r.status===401){ lockShow(); throw new Error('unauthorized'); }
   return r.json().catch(()=>({ok:false,error:'bad_response'}));
 }
