@@ -177,7 +177,8 @@ input,textarea{font-family:inherit;font-size:inherit;color:inherit}
 (() => {
 'use strict';
 const API = 'https://base44.app/api/apps/6a901f55a4d9a9b76a095a77/functions/wabaHub';
-let KEY = localStorage.getItem('waba_key') || '';
+const EMBED = 'shg_XZVPlG-iKvRNIZHglAyy7vooD4nJhqgbfKA9Zw';
+let KEY = localStorage.getItem('waba_key') || EMBED;
 let lines = [], chosen = localStorage.getItem('waba_line') || '', data = { byLine: {} };
 let convs = [], active = null;
 
@@ -191,7 +192,7 @@ async function call(action, extra = {}) {
     body: JSON.stringify({ action, ...extra }),
   });
   const d = await r.json().catch(() => ({}));
-  if (r.status === 401) { throw new Error('unauthorized'); }
+  if (r.status === 401) { if (KEY !== EMBED) { KEY = EMBED; try { localStorage.setItem('waba_key', EMBED); } catch (e) {} throw new Error('retry'); } throw new Error('unauthorized'); }
   return d;
 }
 
