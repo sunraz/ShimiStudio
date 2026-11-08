@@ -61,8 +61,11 @@ input,select{width:100%;padding:13px;border-radius:10px;background:var(--card);b
   <h1>בנק הרשת <span id="stamp">—</span></h1>
   <div class="total"><b id="total">—</b><i>סה"כ · SGC ו-ILS</i></div>
   <div class="hbtns">
-    <button class="hb primary" id="btnTransfer">העברה חדשה</button>
+    <button class="hb primary" id="btnTransfer">העברה פנימית</button>
     <button class="hb" id="btnRefresh">רענון</button>
+  </div>
+  <div style="margin-top:9px;font-size:11.5px;line-height:1.5;color:#e8b84b;background:#2a2415;border:1px solid #4a3c1d;border-radius:8px;padding:8px 10px">
+    ספר פנימי בלבד. העברות ומשיכות כאן נרשמות אצלנו — *הן לא מזיזות כסף בבנק או בביט*.
   </div>
 </header>
 
@@ -184,11 +187,11 @@ async function openAcct(k) {
     ev.preventDefault();
     const id = a.dataset.exec;
     openSheet('ביצוע משיכה', `<label>יעד (IBAN / כרטיס / ארנק)</label><input id="pDest" placeholder="IL00...">
-      <button class="go danger" id="pGo">בצע משיכה</button>`);
+      <button class="go danger" id="pGo">רשום פקודת משיכה</button>`);
     $('#pGo').addEventListener('click', async () => {
       res('מבצע…');
       const r = await op('execute_payout', { payout_id: id, destination_ref: $('#pDest').value });
-      if (r.ok) { res(`בוצעה משיכה. יתרה חדשה ${fmt(r.balance_shekels)}`, true); load(); }
+      if (r.ok) { res(`נרשמה פקודה פנימית. היתרה בספר ירדה ל-${fmt(r.balance_shekels)}.<br><b>לא בוצעה העברה בפועל</b> — את התשלום צריך לבצע בבנק או בביט, ואז לסמן כאן שהתבצע.`, true); load(); }
       else res(esc(r.error || 'שגיאה'), false);
     });
   }));
@@ -218,7 +221,7 @@ async function openAcct(k) {
       if (!amt) return res('סכום לא תקין', false);
       res('יוצר…');
       const r = await op('payout_request', { account_key: k, amount_shekels: amt, method: $('#wMethod').value, destination_ref: $('#wDest').value, idempotency_key: 'ui-wr-' + Date.now() });
-      if (r.ok) { res('בקשת משיכה נוצרה וממתינה לביצוע — היא מופיעה למטה ברשימת המשיכות', true); openAcct(k); }
+      if (r.ok) { res('נוצרה פקודת משיכה פנימית וממתינה. היא מופיעה למטה, אבל היא לא תשלום אמיתי עד שתבצעו אותו בפועל.', true); openAcct(k); }
       else res(esc(r.error || 'שגיאה'), false);
     });
   });
@@ -271,7 +274,7 @@ async function load() {
         </div>
       </div>`).join('');
     document.querySelectorAll('.acc .top').forEach(el => el.addEventListener('click', () => openAcct(el.dataset.k)));
-    $('#foot').innerHTML = '<div class="note">כל הפעולות נרשמות בספר append-only עם מניעת כפילויות. הפקדה שלילית = הוצאה. משיכה דורשת בקשה ואז ביצוע.</div>';
+    $('#foot').innerHTML = '<div class="note">כל הפעולות נרשמות בספר append-only עם מניעת כפילויות. הפקדה שלילית = הוצאה. משיכה = פקודה פנימית שדורשת ביצוע אמיתי מחוץ למערכת.</div>';
   } catch (e) {
     if (e.message === 'unauthorized') { localStorage.removeItem('bank_key'); location.reload(); }
   }
