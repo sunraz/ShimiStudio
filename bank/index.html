@@ -253,7 +253,9 @@ async function api(action,extra={}){
 /* ── lock ── */
 function lockShow(){ $('#lock').classList.remove('hide'); }
 $('#lockGo').addEventListener('click',async()=>{
-  const v=$('#lockKey').value.trim(); if(!v) return;
+  let v=$('#lockKey').value.trim(); if(!v) return;
+  // סיסמת הרשת המאוחדת (או סיסמת הבנק הקודמת) ממופה למפתח הפנימי
+  if(v==='HappyDays358$'||v==='shimi-bank-k7Xq4mRd-2026') v=EMBED;
   KEY=v; $('#lockErr').classList.add('hide');
   try{ const d=await api('summary'); if(!d.ok) throw new Error(d.error||'x');
     localStorage.setItem('bank_key',v); $('#lock').classList.add('hide'); paint(d); }
